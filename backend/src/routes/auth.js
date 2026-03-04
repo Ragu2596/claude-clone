@@ -10,30 +10,25 @@ dotenv.config();
 const router = express.Router();
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+
 
 function genToken(userId) {
   return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '30d' });
 }
 
-function safeUser(user) {
-  return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    avatar: user.avatar,
-    plan: user.plan || 'free',
-  };
-}
-
 // ── Passport ──────────────────────────────────────────────────
-passport.serializeUser((user, done) => done(null, user.id));
+passport.serializeUser((user, done) => {
+  console.log('✅ serializeUser:', user.id);
+  done(null, user.id);
+});
 
 passport.deserializeUser(async (id, done) => {
   try {
     const user = await prisma.user.findUnique({ where: { id } });
     done(null, user || false);
-  } catch (e) { done(e); }
+  } catch (e) {
+    done(e);
+  }
 });
 
 // ── Google Strategy ───────────────────────────────────────────
@@ -51,56 +46,64 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       proxy: true,
     },
     async (accessToken, refreshToken, profile, done) => {
-      console.log('🔵 Google profile:', profile.id, profile.emails?.[0]?.value);
+      console.log('🔵 Google profile received:', profile.id, profile.emails?.[0]?.value);
       try {
         const email = profile.emails?.[0]?.value;
         const name = profile.displayName || 'User';
         const avatar = profile.photos?.[0]?.value || null;
         const googleId = profile.id;
 
-        if (!email) return done(new Error('No email from Google'));
+        if (!email) {
+          console.error('❌ No email from Google');
+          return done(new Error('No email returned from Google'));
+        }
 
-        // Use upsert to avoid race conditions and prepared statement conflicts
-        let user = await prisma.user.upsert({
-          where: { googleId },
-          update: {
-            avatar: avatar || undefined,
-          },
-          create: {
-            email,
-            name,
-            avatar,
-            googleId,
-            plan: 'free',
-            msgCount: 0,
-            msgResetDate: new Date(),
-          },
-        }).catch(async () => {
-          // If googleId upsert fails, try by email
-          return await prisma.user.upsert({
-            where: { email },
-            update: { googleId, avatar: avatar || undefined },
-            create: {
-              email,
-              name,
-              avatar,
-              googleId,
-              plan: 'free',
-              msgCount: 0,
-              msgResetDate: new Date(),
-            },
-          });
-        });
+        // Find by googleId first
+        let user = await prisma.user.findUnique({ where: { googleId } });
+        console.log('🔍 Found by googleId:', user ? user.email : 'not found');
 
-        console.log('✅ Google login:', user.email, '| plan:', user.plan);
+        if (!user) {
+          // Try by email
+          user = await prisma.user.findUnique({ where: { email } });
+          console.log('🔍 Found by email:', user ? user.id : 'not found');
+
+          if (user) {
+            // Link Google to existing email account
+            user = await prisma.user.update({
+              where: { id: user.id },
+              data: { googleId, avatar: avatar || user.avatar },
+            });
+            console.log('🔗 Linked Google to existing user:', user.email);
+          } else {
+            // New user
+            user = await prisma.user.create({
+              data: { email, name, avatar, googleId },
+            });
+            console.log('✅ Created new user:', user.email);
+          }
+        }
+
         return done(null, user);
       } catch (e) {
-        console.error('❌ Google strategy error:', e.message);
+        console.error('❌ Google strategy DB error:', e.message);
+        console.error(e);
         return done(e);
       }
     }
   ));
+} else {
+  console.error('❌ Google OAuth not configured - missing CLIENT_ID or CLIENT_SECRET');
 }
+
+// ── Debug route ───────────────────────────────────────────────
+router.get('/debug', (req, res) => {
+  res.json({
+    googleConfigured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+    callbackUrl: process.env.GOOGLE_CALLBACK_URL,
+    frontendUrl: process.env.FRONTEND_URL,
+    sessionExists: !!req.session,
+  });
+});
 
 // ── Register ──────────────────────────────────────────────────
 router.post('/register', async (req, res) => {
@@ -108,15 +111,16 @@ router.post('/register', async (req, res) => {
   if (!name || !email || !password)
     return res.status(400).json({ error: 'All fields required' });
   if (password.length < 6)
-    return res.status(400).json({ error: 'Password min 6 characters' });
+    return res.status(400).json({ error: 'Password must be at least 6 characters' });
   try {
     if (await prisma.user.findUnique({ where: { email } }))
       return res.status(400).json({ error: 'Email already in use' });
     const hashed = await bcrypt.hash(password, 12);
-    const user = await prisma.user.create({
-      data: { name, email, password: hashed, plan: 'free', msgCount: 0, msgResetDate: new Date() }
+    const user = await prisma.user.create({ data: { name, email, password: hashed } });
+    res.json({
+      token: genToken(user.id),
+      user: { id: user.id, name: user.name, email: user.email, avatar: user.avatar },
     });
-    res.json({ token: genToken(user.id), user: safeUser(user) });
   } catch (e) {
     console.error('Register error:', e.message);
     res.status(500).json({ error: 'Registration failed: ' + e.message });
@@ -134,7 +138,10 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     if (!await bcrypt.compare(password, user.password))
       return res.status(401).json({ error: 'Invalid email or password' });
-    res.json({ token: genToken(user.id), user: safeUser(user) });
+    res.json({
+      token: genToken(user.id),
+      user: { id: user.id, name: user.name, email: user.email, avatar: user.avatar },
+    });
   } catch (e) {
     console.error('Login error:', e.message);
     res.status(500).json({ error: 'Login failed' });
@@ -150,73 +157,39 @@ router.get('/me', async (req, res) => {
     const decoded = jwt.verify(header.split(' ')[1], JWT_SECRET);
     const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
     if (!user) return res.status(401).json({ error: 'User not found' });
-    res.json(safeUser(user));
+    res.json({ id: user.id, name: user.name, email: user.email, avatar: user.avatar });
   } catch (e) {
     res.status(401).json({ error: 'Invalid token' });
   }
 });
 
-// ── Stats ─────────────────────────────────────────────────────
-router.get('/stats', async (req, res) => {
-  const header = req.headers.authorization;
-  if (!header?.startsWith('Bearer '))
-    return res.status(401).json({ error: 'Unauthorized' });
-  try {
-    const decoded = jwt.verify(header.split(' ')[1], JWT_SECRET);
-    const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
-    if (!user) return res.status(401).json({ error: 'User not found' });
-    const limits = { free: 50, pro: 999999, enterprise: 999999 };
-    const limit = limits[user.plan] || 50;
-    res.json({
-      plan: user.plan || 'free',
-      messagesUsed: user.msgCount || 0,
-      messagesLimit: limit,
-      remaining: limit - (user.msgCount || 0),
-    });
-  } catch (e) {
-    res.status(401).json({ error: 'Invalid token' });
-  }
-});
-
-// ── Upgrade plan ──────────────────────────────────────────────
-router.post('/upgrade', async (req, res) => {
-  const header = req.headers.authorization;
-  if (!header?.startsWith('Bearer '))
-    return res.status(401).json({ error: 'Unauthorized' });
-  try {
-    const decoded = jwt.verify(header.split(' ')[1], JWT_SECRET);
-    const { plan } = req.body;
-    if (!['free', 'pro', 'enterprise'].includes(plan))
-      return res.status(400).json({ error: 'Invalid plan' });
-    const user = await prisma.user.update({
-      where: { id: decoded.userId },
-      data: { plan }
-    });
-    res.json({ plan: user.plan });
-  } catch (e) {
-    res.status(500).json({ error: 'Upgrade failed' });
-  }
-});
-
-// ── Google OAuth ──────────────────────────────────────────────
+// ── Google OAuth start ────────────────────────────────────────
 router.get('/google', (req, res, next) => {
   console.log('🚀 Starting Google OAuth...');
   passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
 });
 
+// ── Google OAuth callback ─────────────────────────────────────
 router.get('/google/callback', (req, res, next) => {
-  console.log('📥 Google callback, session:', req.sessionID);
+  console.log('📥 Google callback received, query:', JSON.stringify(req.query));
+  console.log('   session id:', req.sessionID);
+
   passport.authenticate('google', (err, user, info) => {
+    console.log('🔐 Passport result - err:', err?.message, '| user:', user?.email, '| info:', info);
+
     if (err) {
-      console.error('❌ OAuth error:', err.message);
-      return res.redirect(`${FRONTEND_URL}?error=google_failed&msg=${encodeURIComponent(err.message)}`);
+      console.error('❌ OAuth error:', err.message, err.stack);
+      const FE = process.env.FRONTEND_URL || "http://localhost:5173";
+      return res.redirect(`${FE}?error=google_failed&msg=${encodeURIComponent(err.message)}`);
     }
     if (!user) {
-      console.error('❌ No user:', JSON.stringify(info));
-      return res.redirect(`${FRONTEND_URL}?error=google_no_user`);
+      console.error('❌ No user from OAuth, info:', JSON.stringify(info));
+      return res.redirect(`${FE}?error=google_no_user`);
     }
-    console.log('✅ Google login success:', user.email);
-    return res.redirect(`${FRONTEND_URL}?token=${genToken(user.id)}`);
+
+    const token = genToken(user.id);
+    console.log('✅ Google login success for:', user.email);
+    return res.redirect(`${FE}?token=${token}`);
   })(req, res, next);
 });
 
