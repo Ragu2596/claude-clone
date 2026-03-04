@@ -1,0 +1,29 @@
+# ── Dependencies ─────────────────────────────────────────────
+node_modules/
+.npm
+
+# ── Environment files (NEVER push to GitHub) ─────────────────
+.env
+.env.local
+.env.production
+.env.development
+
+# ── Build output ──────────────────────────────────────────────
+dist/
+build/
+
+# ── Uploads ───────────────────────────────────────────────────
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# ── Logs ──────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+
+# ── OS files ──────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── IDE ───────────────────────────────────────────────────────
+.vscode/settings.json
+.idea/

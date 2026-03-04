@@ -1,0 +1,26 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --cream: #f5efe6;
+  --sidebar: #ede8df;
+  --hover: #e5ddd3;
+  --active: #dbd3c7;
+  --white: #ffffff;
+  --user-bubble: #1f1f1f;
+  --text: #1f1f1f;
+  --text2: #666666;
+  --text3: #999999;
+  --border: #d8d0c5;
+  --orange: #c96442;
+  --orange2: #a0522d;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+html, body, #root { height: 100%; overflow: hidden; }
+body { font-family: var(--font); background: var(--cream); color: var(--text); -webkit-font-smoothing: antialiased; font-size: 15px; line-height: 1.6; }
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.18); border-radius: 3px; }
+input, textarea, button, select { font-family: var(--font); }
+@keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+@keyframes dot { 0%,100%{opacity:0.3;transform:scale(0.8)} 50%{opacity:1;transform:scale(1)} }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }

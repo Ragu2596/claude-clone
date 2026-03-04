@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String
+  avatar        String?
+  googleId      String?        @unique
+  password      String?
+  plan          String         @default("free")
+  msgCount      Int            @default(0)
+  msgResetDate  DateTime       @default(now())
+  stripeId      String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  conversations Conversation[]
+  projects      Project[]
+
+  @@index([email])
+}
+
+model Project {
+  id            String         @id @default(cuid())
+  name          String
+  description   String?
+  systemPrompt  String         @default("You are a helpful AI assistant.")
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversations Conversation[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([userId])
+}
+
+model Conversation {
+  id        String    @id @default(cuid())
+  title     String    @default("New Chat")
+  userId    String
+  projectId String?
+  model     String    @default("auto")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project   Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  messages  Message[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([userId, updatedAt])
+  @@index([projectId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  role           String
+  content        String       @db.Text
+  model          String?
+  tokens         Int?
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  fileUrl        String?
+  fileName       String?
+  fileType       String?
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+}
