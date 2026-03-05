@@ -1,7 +1,9 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 
 const Ctx = createContext(null);
-const API = import.meta.env.VITE_API_URL || "http://localhost:3001";
+
+const API       = import.meta.env.VITE_API_URL;
+const GOOGLE_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 export function AuthProvider({ children }) {
   const [user, setUser]             = useState(null);
@@ -12,7 +14,9 @@ export function AuthProvider({ children }) {
     const t = tok || localStorage.getItem("token");
     if (!t) { setLoading(false); return; }
     try {
-      const r = await fetch(`${API}/auth/me`, { headers: { Authorization: "Bearer " + t } });
+      const r = await fetch(`${API}/auth/me`, {
+        headers: { Authorization: "Bearer " + t },
+      });
       if (r.ok) setUser(await r.json());
       else { localStorage.removeItem("token"); setUser(null); }
     } catch (e) { localStorage.removeItem("token"); }
@@ -34,7 +38,7 @@ export function AuthProvider({ children }) {
       const msgs = {
         google_failed:         "Google sign-in failed. Please try again.",
         google_no_user:        "Could not get your Google account. Try again.",
-        google_not_configured: "Google login is not set up yet.",
+        google_not_configured: "Google login is not configured.",
       };
       setOauthError(msgs[error] || msg || "Sign-in failed. Please try again.");
       setLoading(false);
@@ -67,40 +71,25 @@ export function AuthProvider({ children }) {
     setUser(d.user);
   };
 
-  const logout = () => { localStorage.removeItem("token"); setUser(null); };
+  const logout = () => {
+    localStorage.removeItem("token");
+    setUser(null);
+  };
 
-  // ✅ WARM UP backend first, THEN redirect to Google
-  // This ensures backend is awake before Google sends the code back
-  const googleLogin = async () => {
-    try {
-      // 1. Wake up backend (fire and forget — just needs to start)
-      const warmupPromise = fetch(`${API}/health`).catch(() => {});
+  const googleLogin = () => {
+    // Warm up backend while browser builds URL
+    fetch(`${API}/health`).catch(() => {});
 
-      // 2. Build Google OAuth URL directly (no backend needed for this step)
-      const clientId    = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-      const callbackUrl = `${API}/auth/google/callback`;
+    const params = new URLSearchParams({
+      client_id:     GOOGLE_ID,
+      redirect_uri:  `${API}/auth/google/callback`,
+      response_type: "code",
+      scope:         "openid email profile",
+      prompt:        "select_account",
+      access_type:   "online",
+    });
 
-      if (clientId) {
-        // ✅ BEST: Build URL in frontend — backend never touched for redirect
-        const params = new URLSearchParams({
-          client_id:     clientId,
-          redirect_uri:  callbackUrl,
-          response_type: "code",
-          scope:         "openid email profile",
-          prompt:        "select_account",
-          access_type:   "online",
-        });
-        // Wait for warmup to start (not finish — just initiate the request)
-        await Promise.race([warmupPromise, new Promise(r => setTimeout(r, 500))]);
-        window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
-      } else {
-        // Fallback: go through backend (old way)
-        await warmupPromise;
-        window.location.href = `${API}/auth/google`;
-      }
-    } catch (e) {
-      window.location.href = `${API}/auth/google`;
-    }
+    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
   };
 
   const authFetch = useCallback(async (url, opts = {}) => {
