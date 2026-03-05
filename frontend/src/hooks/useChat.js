@@ -26,13 +26,11 @@ export function useChat() {
     });
   }
 
-  // keep ref in sync with state
   const updateActiveId = (id) => {
     activeIdRef.current = id;
     setActiveId(id);
   };
 
-  // ── Load data ────────────────────────────────────────────────
   const loadConvs = useCallback(async (pid) => {
     try {
       const url = pid ? `/api/conversations?projectId=${pid}` : `/api/conversations`;
@@ -52,7 +50,6 @@ export function useChat() {
     if (user) { loadProjects(); loadConvs(null); }
   }, [user]);
 
-  // ── Conversation actions ──────────────────────────────────────
   const selectConv = useCallback(async (id) => {
     if (!id) { updateActiveId(null); setMessages([]); return; }
     try {
@@ -89,18 +86,15 @@ export function useChat() {
     } catch (e) { console.error("deleteConv:", e); }
   }, []);
 
-  // ── Send message ─────────────────────────────────────────────
   const sendMessage = useCallback(async (text, file, model) => {
     if (!text?.trim()) return;
 
-    // get conversation id - use ref to avoid stale closure
     let cid = activeIdRef.current;
     if (!cid) {
       cid = await createNewConv(activeProjectId);
       if (!cid) { console.error("Failed to create conversation"); return; }
     }
 
-    // Add user message + empty assistant bubble to UI immediately
     const userMsgId = "user_" + Date.now();
     const asstMsgId = "asst_" + Date.now();
 
@@ -116,14 +110,14 @@ export function useChat() {
     setMessages(prev => [...prev, userMsg, { id: asstMsgId, role: "assistant", content: "" }]);
     setStreaming(true);
 
-    // We use a ref to accumulate streamed content so React batching doesn't lose chunks
     let accumulated = "";
 
     try {
       const fd = new FormData();
       fd.append("conversationId", cid);
       fd.append("message", text);
-      if (model && model !== "auto") fd.append("model", model);
+      // ✅ FIX: Always send model — "auto" tells backend to use best free model
+      fd.append("model", model || "auto");
       if (file) fd.append("file", file);
 
       abortRef.current = new AbortController();
@@ -140,7 +134,6 @@ export function useChat() {
         throw new Error(err.error || `Server error ${res.status}`);
       }
 
-      // Read SSE stream chunk by chunk
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
@@ -150,51 +143,41 @@ export function useChat() {
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-
-        // Process complete lines
         const lines = buffer.split("\n");
-        buffer = lines.pop() ?? ""; // keep incomplete last line
+        buffer = lines.pop() ?? "";
 
         for (const line of lines) {
           const trimmed = line.trim();
           if (!trimmed.startsWith("data:")) continue;
-
           const jsonStr = trimmed.slice(5).trim();
           if (!jsonStr) continue;
-
           let data;
-          try { data = JSON.parse(jsonStr); }
-          catch (_) { continue; }
+          try { data = JSON.parse(jsonStr); } catch (_) { continue; }
 
           if (data.type === "text" && data.text) {
             accumulated += data.text;
-            // Update the assistant bubble in real-time
-            const snapshot = accumulated; // capture for closure
+            const snapshot = accumulated;
             setMessages(prev =>
               prev.map(m => m.id === asstMsgId ? { ...m, content: snapshot } : m)
             );
           }
-
           if (data.type === "title" && data.title) {
             setConversations(prev =>
               prev.map(c => c.id === cid ? { ...c, title: data.title } : c)
             );
           }
-
           if (data.type === "error") {
             throw new Error(data.error || "Stream error");
           }
         }
       }
 
-      // Ensure final content is set even if last chunk had no newline
       if (accumulated) {
         setMessages(prev =>
           prev.map(m => m.id === asstMsgId ? { ...m, content: accumulated } : m)
         );
       }
 
-      // Replace temp IDs with real DB IDs (silently, non-critical)
       try {
         const r2 = await apiFetch(`/api/conversations/${cid}`);
         if (r2.ok) {
@@ -204,13 +187,10 @@ export function useChat() {
             setMessages(msgs);
           }
         }
-      } catch (_) {
-        // Not critical - temp IDs are fine
-      }
+      } catch (_) {}
 
     } catch (e) {
       if (e.name === "AbortError") {
-        // User stopped - keep what was streamed
         setMessages(prev =>
           prev.map(m =>
             m.id === asstMsgId
@@ -238,7 +218,6 @@ export function useChat() {
     setStreaming(false);
   }, []);
 
-  // ── Project actions ───────────────────────────────────────────
   const createProject = useCallback(async (name, desc, sysprompt) => {
     try {
       const r = await apiFetch("/api/projects", {
@@ -266,19 +245,12 @@ export function useChat() {
   }, [loadConvs]);
 
   return {
-    conversations,
-    activeId,
-    messages,
-    streaming,
-    projects,
-    activeProjectId,
+    conversations, activeId, messages, streaming,
+    projects, activeProjectId,
     selectConv,
     setActiveProjectId: handleSetActiveProjectId,
     newConv: () => createNewConv(activeProjectId),
-    deleteConv,
-    sendMessage,
-    stopStream,
-    createProject,
-    deleteProject,
+    deleteConv, sendMessage, stopStream,
+    createProject, deleteProject,
   };
 }
