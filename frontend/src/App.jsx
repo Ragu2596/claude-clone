@@ -7,6 +7,17 @@ import { useAuth } from "./context/AuthContext";
 import { useChat } from "./hooks/useChat";
 import PricingPage from "./PricingPage";
 
+// ─── Mobile hook ──────────────────────────────────────────────────────────────
+function useIsMobile() {
+  const [v, setV] = useState(() => window.innerWidth < 768);
+  useEffect(() => {
+    const h = () => setV(window.innerWidth < 768);
+    window.addEventListener("resize", h);
+    return () => window.removeEventListener("resize", h);
+  }, []);
+  return v;
+}
+
 // ─── Icons ───────────────────────────────────────────────────────────────────
 const Icon = ({ d, size = 16, stroke = "currentColor", fill = "none", sw = 2 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={stroke} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
@@ -28,6 +39,8 @@ const ChevronDown  = ({size=14}) => <Icon size={size} sw={2} d="M6 9l6 6 6-6"/>;
 const RefreshIcon  = ({size=14}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>;
 const CloseIcon    = ({size=13}) => <Icon size={size} sw={2.5} d="M18 6L6 18M6 6l12 12"/>;
 const PreviewIcon  = ({size=14}) => <Icon size={size} d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zM12 9a3 3 0 100 6 3 3 0 000-6z"/>;
+// NEW: hamburger icon for mobile
+const MenuIcon     = ({size=22}) => <Icon size={size} sw={2} d="M3 6h18M3 12h18M3 18h18"/>;
 
 // ─── Logo ─────────────────────────────────────────────────────────────────────
 const RkLogo = ({ size = 28 }) => (
@@ -113,8 +126,6 @@ function AuthPage() {
   return (
     <div style={{ minHeight: "100vh", background: "var(--cream)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
       <div style={{ width: "100%", maxWidth: 380 }}>
-
-        {/* Header */}
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <RkLogo size={56} />
           <h1 style={{ fontSize: 26, fontWeight: 700, marginTop: 18, letterSpacing: "-0.02em", color: "var(--text)" }}>
@@ -124,49 +135,33 @@ function AuthPage() {
             {mode === "login" ? "Sign in to continue to rk.ai" : "Start for free — no credit card required"}
           </p>
         </div>
-
-        {/* Card */}
         <div style={{ background: "#fff", borderRadius: 18, padding: "28px 26px", border: "1px solid var(--border)", boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
-
-          {/* Google */}
           <button onClick={googleLogin} style={{ width: "100%", padding: "11px 16px", marginBottom: 20, background: "#fff", border: "1px solid var(--border)", borderRadius: 10, fontSize: 14, fontWeight: 500, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, transition: "all .15s" }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = "#999"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.08)"; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }}>
             <GoogleLogo /> Continue with Google
           </button>
-
-          {/* Divider */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
             <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
             <span style={{ fontSize: 12, color: "var(--text3)" }}>or continue with email</span>
             <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
           </div>
-
-          {/* Fields */}
           <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
-            {mode === "register" && (
-              <Field label="Full name" value={form.name} onChange={set("name")} placeholder="Your name" />
-            )}
+            {mode === "register" && <Field label="Full name" value={form.name} onChange={set("name")} placeholder="Your name" />}
             <Field label="Email address" type="email" value={form.email} onChange={set("email")} placeholder="you@example.com" />
             <Field label="Password" type="password" value={form.password} onChange={set("password")} placeholder="••••••••" onKeyDown={e => e.key === "Enter" && submit()} />
           </div>
-
-          {/* Error */}
           {error && (
             <div style={{ fontSize: 13, color: "#dc2626", marginBottom: 14, padding: "10px 12px", background: "#fef2f2", borderRadius: 8, border: "1px solid #fecaca" }}>
               {error}
             </div>
           )}
-
-          {/* Submit */}
           <button onClick={submit} disabled={loading} style={{ width: "100%", padding: "12px", background: "var(--orange)", border: "none", borderRadius: 10, color: "#fff", fontSize: 14, fontWeight: 600, cursor: loading ? "default" : "pointer", opacity: loading ? 0.75 : 1, transition: "background .15s" }}
             onMouseEnter={e => { if (!loading) e.currentTarget.style.background = "var(--orange2)"; }}
             onMouseLeave={e => e.currentTarget.style.background = "var(--orange)"}>
             {loading ? "Please wait..." : mode === "login" ? "Sign in" : "Create account"}
           </button>
         </div>
-
-        {/* Toggle mode */}
         <p style={{ textAlign: "center", fontSize: 13, color: "var(--text2)", marginTop: 20 }}>
           {mode === "login" ? "Don't have an account? " : "Already have an account? "}
           <button onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); }} style={{ background: "none", border: "none", color: "var(--orange)", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
@@ -194,13 +189,14 @@ function Field({ label, type = "text", value, onChange, placeholder, onKeyDown }
 }
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
-function Sidebar({ conversations, projects, activeId, activeProjectId, selectConv, newConv, deleteConv, setActiveProjectId, createProject, deleteProject, onUpgrade }) {
+// CHANGED: added isMobile + onClose props
+function Sidebar({ conversations, projects, activeId, activeProjectId, selectConv, newConv, deleteConv, setActiveProjectId, createProject, deleteProject, onUpgrade, isMobile, onClose }) {
   const { user, logout } = useAuth();
-  const [showMenu, setShowMenu]   = useState(false);
+  const [showMenu, setShowMenu]       = useState(false);
   const [showNewProj, setShowNewProj] = useState(false);
-  const [pForm, setPForm]         = useState({ name: "", prompt: "You are a helpful AI assistant." });
-  const [hovConv, setHovConv]     = useState(null);
-  const [hovProj, setHovProj]     = useState(null);
+  const [pForm, setPForm]             = useState({ name: "", prompt: "You are a helpful AI assistant." });
+  const [hovConv, setHovConv]         = useState(null);
+  const [hovProj, setHovProj]         = useState(null);
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -216,19 +212,22 @@ function Sidebar({ conversations, projects, activeId, activeProjectId, selectCon
     setPForm({ name: "", prompt: "You are a helpful AI assistant." });
   };
 
+  // Auto-close sidebar on mobile after choosing a chat
+  const go = fn => { fn(); if (isMobile && onClose) onClose(); };
+
   const menuItems = [
     { icon: "⚙️", label: "Settings" },
     { icon: "🌐", label: "Language", arrow: true },
     { icon: "❓", label: "Get help" },
     null,
-    { icon: "⬆️", label: "Upgrade plan", action: () => onUpgrade() },
+    { icon: "⬆️", label: "Upgrade plan", action: () => { onUpgrade(); if (isMobile && onClose) onClose(); } },
     { icon: "🎁", label: "Gift rk.ai" },
     null,
     { icon: "↪️", label: "Log out", action: logout, danger: true },
   ];
 
   return (
-    <div style={{ width: 260, minWidth: 260, height: "100%", background: "var(--sidebar)", display: "flex", flexDirection: "column", borderRight: "1px solid var(--border)" }}>
+    <div style={{ width: 260, height: "100%", background: "var(--sidebar)", display: "flex", flexDirection: "column", borderRight: "1px solid var(--border)" }}>
 
       {/* Top */}
       <div style={{ padding: "14px 12px 8px", flexShrink: 0 }}>
@@ -237,14 +236,19 @@ function Sidebar({ conversations, projects, activeId, activeProjectId, selectCon
             <RkLogo size={26} />
             <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.01em" }}>rk.ai</span>
           </div>
-          <SideBtn onClick={newConv} title="New chat"><EditIcon size={16} /></SideBtn>
+          <div style={{ display: "flex", gap: 4 }}>
+            <SideBtn onClick={() => go(newConv)} title="New chat"><EditIcon size={16} /></SideBtn>
+            {/* X button — only on mobile */}
+            {isMobile && (
+              <SideBtn onClick={onClose} title="Close"><CloseIcon size={16} /></SideBtn>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Scrollable list */}
       <div style={{ flex: 1, overflowY: "auto", padding: "2px 8px" }}>
 
-        {/* Projects */}
         <SectionHeader label="Projects" action={() => setShowNewProj(!showNewProj)} />
         {showNewProj && (
           <div style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: 10, padding: 10, marginBottom: 6 }}>
@@ -261,7 +265,7 @@ function Sidebar({ conversations, projects, activeId, activeProjectId, selectCon
         {projects.map(p => (
           <SideItem key={p.id} icon={<FolderIcon />} label={p.name} isActive={activeProjectId === p.id}
             hovered={hovProj === p.id} onHover={setHovProj} id={p.id}
-            onSelect={() => setActiveProjectId(p.id)} onDelete={() => deleteProject(p.id)} />
+            onSelect={() => go(() => setActiveProjectId(p.id))} onDelete={() => deleteProject(p.id)} />
         ))}
         {projects.length === 0 && !showNewProj && (
           <button onClick={() => setShowNewProj(true)} style={{ width: "100%", padding: "7px 10px", background: "none", border: "1px dashed var(--border)", borderRadius: 8, color: "var(--text3)", fontSize: 13, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}
@@ -271,15 +275,12 @@ function Sidebar({ conversations, projects, activeId, activeProjectId, selectCon
           </button>
         )}
 
-        {/* Recents */}
         <SectionHeader label="Recents" />
-        {conversations.length === 0 && (
-          <p style={{ fontSize: 13, color: "var(--text3)", padding: "4px 10px" }}>No conversations yet</p>
-        )}
+        {conversations.length === 0 && <p style={{ fontSize: 13, color: "var(--text3)", padding: "4px 10px" }}>No conversations yet</p>}
         {conversations.map(c => (
           <SideItem key={c.id} icon={<ChatIcon />} label={c.title} isActive={activeId === c.id}
             hovered={hovConv === c.id} onHover={setHovConv} id={c.id}
-            onSelect={() => selectConv(c.id)} onDelete={() => deleteConv(c.id)} />
+            onSelect={() => go(() => selectConv(c.id))} onDelete={() => deleteConv(c.id)} />
         ))}
       </div>
 
@@ -391,7 +392,7 @@ function Message({ msg, isLast, streaming, onArtifact }) {
 
   if (isUser) return (
     <div style={{ display: "flex", justifyContent: "flex-end", padding: "6px 0", marginBottom: 6, animation: "fadeUp .25s ease forwards" }}>
-      <div style={{ maxWidth: "75%" }}>
+      <div style={{ maxWidth: "85%" }}>
         {msg.fileUrl && (
           <div style={{ marginBottom: 6, display: "flex", justifyContent: "flex-end" }}>
             {(msg.fileType || "").startsWith("image/")
@@ -464,13 +465,9 @@ function Message({ msg, isLast, streaming, onArtifact }) {
                 {msg.content}
               </ReactMarkdown>
             </div>
-
-            {/* Cursor */}
             {isLast && streaming && msg.content && (
               <span style={{ display: "inline-block", width: 2, height: 17, background: "var(--text)", marginLeft: 1, animation: "blink 1s ease infinite", verticalAlign: "middle" }} />
             )}
-
-            {/* Actions */}
             {!streaming && msg.content && !msg.error && (
               <div style={{ display: "flex", gap: 2, marginTop: 10 }}>
                 {[
@@ -507,16 +504,8 @@ const MODELS = [
   { id: "claude-haiku-4-5-20251001", label: "Claude Haiku",    sub: "Fast · Anthropic",      badge: "PRO",  color: "#f59e0b", group: "anthropic" },
   { id: "claude-sonnet-4-20250514",  label: "Claude Sonnet 4", sub: "Best · Anthropic",      badge: "TOP",  color: "#8b5cf6", group: "anthropic" },
 ];
-
-const GROUP_LABELS = {
-  auto:      null,
-  groq:      "🆓 Free · Groq",
-  gemini:    "🆓 Free · Google Gemini",
-  openai:    "💚 ChatGPT · OpenAI",
-  anthropic: "🟠 Claude · Anthropic",
-};
-
-const GROUP_ORDER = ["auto", "groq", "gemini", "openai", "anthropic"];
+const GROUP_LABELS = { auto: null, groq: "🆓 Free · Groq", gemini: "🆓 Free · Google Gemini", openai: "💚 ChatGPT · OpenAI", anthropic: "🟠 Claude · Anthropic" };
+const GROUP_ORDER  = ["auto", "groq", "gemini", "openai", "anthropic"];
 
 function ModelSelector({ value, onChange }) {
   const [open, setOpen] = useState(false);
@@ -545,30 +534,23 @@ function ModelSelector({ value, onChange }) {
           <polyline points="6 9 12 15 18 9" />
         </svg>
       </button>
-
       {open && (
         <div style={{ position: "fixed", background: "#fff", border: "1px solid #e0d9d0", borderRadius: 14, boxShadow: "0 8px 32px rgba(0,0,0,0.16)", zIndex: 99999, width: 290, overflow: "hidden", maxHeight: 460, overflowY: "auto" }}
           ref={node => {
             if (node && ref.current) {
               const btn = ref.current.getBoundingClientRect();
-              node.style.left  = btn.left + "px";
+              node.style.left   = btn.left + "px";
               node.style.bottom = (window.innerHeight - btn.top + 8) + "px";
             }
           }}>
           <div style={{ padding: "10px 16px 6px", fontSize: 11, fontWeight: 700, color: "#999", textTransform: "uppercase", letterSpacing: 1, borderBottom: "1px solid #f0ebe4", background: "#fff", position: "sticky", top: 0 }}>
             Choose Model
           </div>
-
           {GROUP_ORDER.map(group => {
-            const items = grouped[group];
-            if (!items) return null;
+            const items = grouped[group]; if (!items) return null;
             return (
               <div key={group}>
-                {GROUP_LABELS[group] && (
-                  <div style={{ padding: "8px 16px 3px", fontSize: 10, fontWeight: 700, color: "#999", textTransform: "uppercase", letterSpacing: 0.8, background: "#f9f7f5" }}>
-                    {GROUP_LABELS[group]}
-                  </div>
-                )}
+                {GROUP_LABELS[group] && <div style={{ padding: "8px 16px 3px", fontSize: 10, fontWeight: 700, color: "#999", textTransform: "uppercase", letterSpacing: 0.8, background: "#f9f7f5" }}>{GROUP_LABELS[group]}</div>}
                 {items.map(m => (
                   <div key={m.id} onClick={() => { onChange(m.id); setOpen(false); }}
                     style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", cursor: "pointer", background: value === m.id ? "#f5efe6" : "#fff", borderLeft: value === m.id ? `3px solid ${m.color}` : "3px solid transparent", transition: "background .1s" }}
@@ -580,15 +562,12 @@ function ModelSelector({ value, onChange }) {
                       <div style={{ fontSize: 10, color: "#999", marginTop: 1 }}>{m.sub}</div>
                     </div>
                     <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4, background: m.color, color: "#fff", flexShrink: 0 }}>{m.badge}</span>
-                    {value === m.id && (
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={m.color} strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
-                    )}
+                    {value === m.id && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={m.color} strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}
                   </div>
                 ))}
               </div>
             );
           })}
-
           <div style={{ padding: "8px 16px", fontSize: 10, color: "#aaa", borderTop: "1px solid #f0ebe4", background: "#fafaf8", position: "sticky", bottom: 0 }}>
             🆓 Groq + Gemini are completely free &nbsp;·&nbsp; Others require API keys
           </div>
@@ -607,23 +586,18 @@ function InputBar({ onSend, streaming, onStop }) {
   const fileRef = useRef(null);
 
   useEffect(() => {
-    const ta = taRef.current;
-    if (!ta) return;
+    const ta = taRef.current; if (!ta) return;
     ta.style.height = "auto";
     ta.style.height = Math.min(ta.scrollHeight, 200) + "px";
   }, [text]);
 
   const submit = () => {
-    const t = text.trim();
-    if (!t || streaming) return;
-    onSend(t, file, selectedModel);
-    setText(""); setFile(null);
+    const t = text.trim(); if (!t || streaming) return;
+    onSend(t, file, selectedModel); setText(""); setFile(null);
   };
 
   return (
-    <div style={{ padding: "0 20px 18px", flexShrink: 0 }}>
-
-      {/* File preview */}
+    <div style={{ padding: "0 16px 18px", flexShrink: 0 }}>
       {file && (
         <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 8, background: "#fff", border: "1px solid var(--border)", borderRadius: 10, padding: "8px 12px" }}>
           {(file.type || "").startsWith("image/")
@@ -640,17 +614,13 @@ function InputBar({ onSend, streaming, onStop }) {
           </button>
         </div>
       )}
-
-      {/* Input box */}
       <div style={{ background: "#fff", border: "1px solid #ccc5ba", borderRadius: 14, boxShadow: "0 2px 10px rgba(0,0,0,0.08)", overflow: "hidden" }}
         onFocusCapture={e => { e.currentTarget.style.boxShadow = "0 2px 14px rgba(0,0,0,0.12)"; e.currentTarget.style.borderColor = "#a89e93"; }}
-        onBlurCapture={e =>  { e.currentTarget.style.boxShadow = "0 2px 10px rgba(0,0,0,0.08)"; e.currentTarget.style.borderColor = "#ccc5ba"; }}>
-
+        onBlurCapture={e  => { e.currentTarget.style.boxShadow = "0 2px 10px rgba(0,0,0,0.08)"; e.currentTarget.style.borderColor = "#ccc5ba"; }}>
         <textarea ref={taRef} value={text} onChange={e => setText(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
           placeholder="How can rk.ai help you today?" rows={1}
           style={{ width: "100%", background: "none", border: "none", outline: "none", padding: "14px 16px 0", color: "var(--text)", fontSize: 15, lineHeight: 1.65, resize: "none", maxHeight: 200, overflowY: "auto", display: "block", fontFamily: "inherit" }} />
-
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px 10px" }}>
           <div style={{ display: "flex", gap: 2 }}>
             <input ref={fileRef} type="file" accept="image/*,.pdf" onChange={e => { if (e.target.files[0]) setFile(e.target.files[0]); e.target.value = ""; }} style={{ display: "none" }} />
@@ -693,23 +663,24 @@ function IBtn({ children, onClick, title, active }) {
 }
 
 // ─── Welcome Screen ───────────────────────────────────────────────────────────
-function Welcome({ onSend, user }) {
+function Welcome({ onSend, user, isMobile }) {
   const cards = [
-    { t: "Help me write",      s: "an email, essay, or creative story" },
-    { t: "Explain a concept",  s: "simply and clearly"                 },
-    { t: "Debug my code",      s: "find and fix errors"                },
-    { t: "Brainstorm ideas",   s: "for a project or problem"           },
+    { t: "Help me write",     s: "an email, essay, or creative story" },
+    { t: "Explain a concept", s: "simply and clearly"                 },
+    { t: "Debug my code",     s: "find and fix errors"                },
+    { t: "Brainstorm ideas",  s: "for a project or problem"           },
   ];
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 24px", overflow: "auto" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: isMobile ? "32px 16px" : "40px 24px", overflow: "auto" }}>
       <RkLogo size={56} />
-      <h1 style={{ fontSize: 30, fontWeight: 700, marginTop: 20, marginBottom: 8, letterSpacing: "-0.025em", color: "var(--text)", textAlign: "center" }}>
+      <h1 style={{ fontSize: isMobile ? 24 : 30, fontWeight: 700, marginTop: 20, marginBottom: 8, letterSpacing: "-0.025em", color: "var(--text)", textAlign: "center" }}>
         {user ? `Good day, ${user.name.split(" ")[0]}.` : "Welcome to rk.ai"}
       </h1>
       <p style={{ fontSize: 15, color: "var(--text2)", marginBottom: 40, textAlign: "center", maxWidth: 420, lineHeight: 1.65 }}>
         I can help with writing, analysis, coding, math, research, and much more.
       </p>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, maxWidth: 540, width: "100%" }}>
+      {/* CHANGED: single column on mobile */}
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10, maxWidth: 540, width: "100%" }}>
         {cards.map(c => (
           <button key={c.t} onClick={() => onSend(c.t)}
             style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: 14, padding: "16px 18px", cursor: "pointer", textAlign: "left", transition: "all .15s", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}
@@ -725,11 +696,23 @@ function Welcome({ onSend, user }) {
 }
 
 // ─── Artifact Panel ───────────────────────────────────────────────────────────
-function ArtifactPanel({ code, lang, onClose }) {
+// CHANGED: fullscreen on mobile
+function ArtifactPanel({ code, lang, onClose, isMobile }) {
   const [view, setView] = useState("preview");
   const [key,  setKey]  = useState(0);
   return (
-    <div style={{ width: 480, minWidth: 480, height: "100%", borderLeft: "1px solid var(--border)", background: "#fff", display: "flex", flexDirection: "column" }}>
+    <div style={{
+      width: isMobile ? "100%" : 480,
+      height: "100%",
+      position: isMobile ? "fixed" : "relative",
+      top: isMobile ? 0 : "auto",
+      left: isMobile ? 0 : "auto",
+      zIndex: isMobile ? 300 : "auto",
+      borderLeft: "1px solid var(--border)",
+      background: "#fff",
+      display: "flex",
+      flexDirection: "column",
+    }}>
       <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
         <div style={{ display: "flex", gap: 6 }}>
           {["preview", "code"].map(v => (
@@ -781,6 +764,10 @@ function LoadingScreen() {
 export default function App() {
   const { user, loading } = useAuth();
   const [showPricing, setShowPricing] = useState(false);
+  // NEW: mobile sidebar state
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isMobile = useIsMobile();
+
   const {
     conversations, activeId, messages, streaming,
     projects, activeProjectId,
@@ -792,6 +779,8 @@ export default function App() {
   const bottomRef = useRef(null);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  // Close sidebar when resizing back to desktop
+  useEffect(() => { if (!isMobile) setSidebarOpen(false); }, [isMobile]);
 
   if (loading) return <LoadingScreen />;
   if (!user)   return <AuthPage />;
@@ -799,36 +788,72 @@ export default function App() {
   const activeConv = conversations.find(c => c.id === activeId);
 
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--cream)" }}>
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--cream)", position: "relative" }}>
 
-      {/* Sidebar */}
-      <Sidebar conversations={conversations} projects={projects} activeId={activeId} activeProjectId={activeProjectId}
-        selectConv={selectConv} newConv={newConv} deleteConv={deleteConv} onUpgrade={() => setShowPricing(true)}
-        setActiveProjectId={setActiveProjectId} createProject={createProject} deleteProject={deleteProject} />
+      {/* ── Dark overlay when sidebar open on mobile ── */}
+      {isMobile && sidebarOpen && (
+        <div onClick={() => setSidebarOpen(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 199 }} />
+      )}
 
-      {/* Main */}
+      {/* ── Sidebar — slides in from left on mobile ── */}
+      <div style={{
+        position:   isMobile ? "fixed"    : "relative",
+        left:       isMobile ? (sidebarOpen ? 0 : -270) : 0,
+        top: 0, bottom: 0,
+        zIndex:     isMobile ? 200 : "auto",
+        transition: "left .25s cubic-bezier(.4,0,.2,1)",
+        height:     "100%",
+        flexShrink: 0,
+      }}>
+        <Sidebar
+          conversations={conversations} projects={projects}
+          activeId={activeId} activeProjectId={activeProjectId}
+          selectConv={selectConv} newConv={newConv} deleteConv={deleteConv}
+          setActiveProjectId={setActiveProjectId} createProject={createProject} deleteProject={deleteProject}
+          onUpgrade={() => setShowPricing(true)}
+          isMobile={isMobile}
+          onClose={() => setSidebarOpen(false)}
+        />
+      </div>
+
+      {/* ── Main ── */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
 
         {/* Topbar */}
-        <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0, background: "var(--cream)" }}>
-          <div>
-            <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{activeConv?.title || "New conversation"}</h2>
-            <p style={{ fontSize: 11, color: "var(--text3)", marginTop: 1 }}>
-              {messages.length > 0 ? `${Math.ceil(messages.length / 2)} exchanges` : "Start a conversation below"}
-            </p>
+        <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0, background: "var(--cream)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+            {/* ── Hamburger button — only on mobile ── */}
+            {isMobile && (
+              <button onClick={() => setSidebarOpen(true)}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text2)", display: "flex", padding: 6, borderRadius: 8, flexShrink: 0 }}
+                onMouseEnter={e => e.currentTarget.style.background = "var(--hover)"}
+                onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                <MenuIcon size={22} />
+              </button>
+            )}
+            <div style={{ minWidth: 0 }}>
+              <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: isMobile ? 180 : 480 }}>
+                {activeConv?.title || "New conversation"}
+              </h2>
+              <p style={{ fontSize: 11, color: "var(--text3)", marginTop: 1 }}>
+                {messages.length > 0 ? `${Math.ceil(messages.length / 2)} exchanges` : "Start a conversation below"}
+              </p>
+            </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 10px", background: "#fff", border: "1px solid var(--border)", borderRadius: 8 }}>
+          {/* Avatar — hide name on mobile */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 10px", background: "#fff", border: "1px solid var(--border)", borderRadius: 8, flexShrink: 0 }}>
             <Avatar user={user} size={22} />
-            <span style={{ fontSize: 12.5, fontWeight: 500, color: "var(--text)" }}>{user.name}</span>
+            {!isMobile && <span style={{ fontSize: 12.5, fontWeight: 500, color: "var(--text)" }}>{user.name}</span>}
           </div>
         </div>
 
         {/* Messages */}
         <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
           {messages.length === 0
-            ? <Welcome onSend={sendMessage} user={user} />
+            ? <Welcome onSend={sendMessage} user={user} isMobile={isMobile} />
             : (
-              <div style={{ maxWidth: 740, margin: "0 auto", padding: "8px 24px 16px" }}>
+              <div style={{ maxWidth: 740, margin: "0 auto", padding: isMobile ? "8px 12px 16px" : "8px 24px 16px" }}>
                 {messages.map((m, i) => (
                   <Message key={m.id} msg={m} isLast={i === messages.length - 1} streaming={streaming}
                     onArtifact={(code, lang) => setArtifact({ code, lang })} />
@@ -845,7 +870,7 @@ export default function App() {
       </div>
 
       {/* Artifact panel */}
-      {artifact && <ArtifactPanel code={artifact.code} lang={artifact.lang} onClose={() => setArtifact(null)} />}
+      {artifact && <ArtifactPanel code={artifact.code} lang={artifact.lang} onClose={() => setArtifact(null)} isMobile={isMobile} />}
       {showPricing && <PricingPage onClose={() => setShowPricing(false)} user={user} />}
     </div>
   );
