@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -9,93 +10,74 @@ datasource db {
 }
 
 model User {
-  id             String         @id @default(cuid())
-  email          String         @unique
-  name           String
-  avatar         String?
-  googleId       String?        @unique
+  id             String    @id @default(cuid())
+  email          String    @unique
+  name           String?
   password       String?
-
-  // Plan
-  plan           String         @default("free")
+  avatar         String?
+  googleId       String?   @unique
+  plan           String    @default("free")
   planBilling    String?
   planExpiresAt  DateTime?
   planPaymentId  String?
-
-  // Usage tracking
-  msgCount       Int            @default(0)
-  msgResetDate   DateTime       @default(now())
-
-  // Legacy / Stripe (keep for compatibility)
+  msgCount       Int       @default(0)
+  msgResetDate   DateTime  @default(now())
   stripeId       String?
-
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   conversations  Conversation[]
   projects       Project[]
-
-  @@index([email])
-}
-
-model Project {
-  id            String         @id @default(cuid())
-  name          String
-  description   String?
-  systemPrompt  String         @default("You are a helpful AI assistant.")
-  userId        String
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  conversations Conversation[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-
-  @@index([userId])
+  payments       Payment[]
 }
 
 model Conversation {
   id        String    @id @default(cuid())
-  title     String    @default("New Chat")
+  title     String    @default("New Conversation")
   userId    String
   projectId String?
-  model     String    @default("auto")
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project   Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  messages  Message[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  @@index([userId, updatedAt])
-  @@index([projectId])
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project   Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  messages  Message[]
 }
 
 model Message {
-  id             String       @id @default(cuid())
-  role           String
-  content        String       @db.Text
-  model          String?
-  tokens         Int?
+  id             String   @id @default(cuid())
   conversationId String
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  fileUrl        String?
-  fileName       String?
-  fileType       String?
-  createdAt      DateTime     @default(now())
+  role           String
+  content        String
+  model          String?
+  createdAt      DateTime @default(now())
 
-  @@index([conversationId, createdAt])
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
+
+model Project {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  userId        String
+  systemPrompt  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversations Conversation[]
 }
 
 model Payment {
-  id          String   @id @default(cuid())
-  userId      String
-  orderId     String   @unique
-  paymentId   String?  @unique
-  plan        String
-  billing     String
-  amount      Int
-  currency    String   @default("INR")
-  status      String   @default("created")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  userId    String
+  orderId   String   @unique
+  paymentId String?
+  plan      String
+  billing   String
+  amount    Int
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
 
-  @@index([userId])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
