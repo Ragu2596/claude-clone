@@ -8,10 +8,6 @@ dotenv.config();
 
 const router = express.Router();
 
-const razorpay = new Razorpay({
-  key_id:     process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
 
 // ── POST /payments/create-order ──────────────────────────────
 router.post('/create-order', authenticate, async (req, res) => {
@@ -19,7 +15,8 @@ router.post('/create-order', authenticate, async (req, res) => {
   const prices = { pro_monthly: 99900, pro_yearly: 82900, max_monthly: 299900, max_yearly: 248900 };
   const amount = prices[`${plan}_${billing || "monthly"}`];
   if (!plan || !amount) return res.status(400).json({ error: "invalid plan or billing" });
-  if (!process.env.RAZORPAY_KEY_ID) return res.status(500).json({ error: 'Razorpay not configured' });
+  if (!process.env.RAZORPAY_KEY_ID) return res.status(500).json({ error: "Razorpay not configured" });
+  const razorpay = new Razorpay({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_KEY_SECRET });
 
   try {
     const order = await razorpay.orders.create({
