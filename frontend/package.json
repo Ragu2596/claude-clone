@@ -2,15 +2,12 @@
   "name": "claude-clone-backend",
   "version": "1.0.0",
   "type": "module",
-  "prisma": {
-    "schema": "prisma/schema.prisma"
-  },
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "build": "npx prisma generate && npx prisma db push --accept-data-loss",
-    "db:push": "npx prisma db push",
-    "db:generate": "npx prisma generate"
+    "build": "npx prisma generate --schema=./prisma/schema.prisma && npx prisma db push --schema=./prisma/schema.prisma --accept-data-loss",
+    "db:push": "npx prisma db push --schema=./prisma/schema.prisma",
+    "db:generate": "npx prisma generate --schema=./prisma/schema.prisma"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.30.0",
