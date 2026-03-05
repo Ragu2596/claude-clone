@@ -23,6 +23,7 @@ model User {
   conversations  Conversation[]
   projects       Project[]
   payments       Payment[]
+
   @@index([email])
   @@index([googleId])
 }
@@ -38,6 +39,8 @@ model Payment {
   amount    Int
   status    String   @default("paid")
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt  // ✅ ADDED
+
   @@index([userId])
 }
 
@@ -51,6 +54,7 @@ model Project {
   conversations Conversation[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+
   @@index([userId])
 }
 
@@ -64,6 +68,7 @@ model Conversation {
   messages  Message[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+
   @@index([userId])
   @@index([projectId])
   @@index([userId, updatedAt])
@@ -79,6 +84,7 @@ model Message {
   fileName       String?
   fileType       String?
   createdAt      DateTime     @default(now())
+
   @@index([conversationId])
   @@index([conversationId, createdAt])
 }
@@ -93,6 +99,7 @@ model KnowledgeCache {
   savedCost    Float    @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
   @@index([questionHash])
   @@index([hitCount])
   @@index([createdAt])
@@ -104,5 +111,6 @@ model CacheStats {
   totalHits   Int      @default(0)
   totalMisses Int      @default(0)
   costSaved   Float    @default(0)
+
   @@index([date])
 }

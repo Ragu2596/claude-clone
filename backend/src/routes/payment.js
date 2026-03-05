@@ -8,10 +8,14 @@ dotenv.config();
 
 const router = express.Router();
 
+// ── Init Razorpay once (not per-request) ─────────────────────
 const getRazorpay = () => {
   const key_id     = process.env.RAZORPAY_KEY_ID?.trim();
   const key_secret = process.env.RAZORPAY_KEY_SECRET?.trim();
-  if (!key_id || !key_secret) throw new Error(`Razorpay env missing`);
+
+  if (!key_id || !key_secret) {
+    throw new Error(`Razorpay env missing — KEY_ID: ${!!key_id}, SECRET: ${!!key_secret}`);
+  }
   return new Razorpay({ key_id, key_secret });
 };
 
@@ -26,24 +30,24 @@ router.post('/create-order', authenticate, async (req, res) => {
     max_yearly:   248900,
   };
 
-  const key    = `${plan}_${billing || 'monthly'}`;
+  const key = `${plan}_${billing || 'monthly'}`;
   const amount = prices[key];
-  if (!plan || !amount) return res.status(400).json({ error: `Invalid plan: ${key}` });
+
+  if (!plan || !amount) {
+    return res.status(400).json({ error: `Invalid plan/billing: ${key}` });
+  }
 
   try {
     const razorpay = getRazorpay();
 
-    // ✅ FIX: receipt max 40 chars — use short timestamp only
-    const receipt = `rk_${Date.now().toString().slice(-10)}`;   // "rk_" + 10 digits = 13 chars ✅
-
     const order = await razorpay.orders.create({
       amount,
       currency: 'INR',
-      receipt,
-      notes: { userId: req.user.id, plan, email: req.user.email },
+      receipt:  `rkai_${req.user.id}_${Date.now()}`.slice(0, 40),
+      notes:    { userId: req.user.id, plan, email: req.user.email },
     });
 
-    console.log(`💳 Order: ${order.id} | ${req.user.email} | ${plan} | receipt=${receipt}`);
+    console.log(`💳 Order created: ${order.id} | ${req.user.email} | ${plan}`);
 
     res.json({
       orderId:  order.id,
@@ -53,14 +57,18 @@ router.post('/create-order', authenticate, async (req, res) => {
     });
 
   } catch (e) {
-    console.error('❌ Order error:', JSON.stringify({
+    // ✅ Properly log Razorpay errors (they are NOT plain Error objects)
+    console.error('❌ Order error:', {
       message:     e.message,
       statusCode:  e.statusCode,
+      error:       e.error,          // Razorpay puts details here
       description: e.error?.description,
-    }));
+    });
+
     res.status(500).json({
-      error:  'Failed to create order',
-      detail: e.error?.description || e.message,
+      error:       'Failed to create order',
+      // Remove the line below in production if you don't want to expose details
+      detail:      e.error?.description || e.message,
     });
   }
 });
@@ -69,8 +77,9 @@ router.post('/create-order', authenticate, async (req, res) => {
 router.post('/verify', authenticate, async (req, res) => {
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature, plan } = req.body;
 
-  if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature)
+  if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
     return res.status(400).json({ error: 'Missing payment details' });
+  }
 
   try {
     const expected = crypto
@@ -97,9 +106,11 @@ router.post('/verify', authenticate, async (req, res) => {
         orderId:   razorpay_order_id,
         paymentId: razorpay_payment_id,
         plan,
-        billing:   'monthly',
+        billing:   billing || 'monthly',
         amount:    plan === 'pro' ? 99900 : 299900,
         status:    'paid',
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     });
 
