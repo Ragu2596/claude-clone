@@ -194,7 +194,7 @@ function Field({ label, type = "text", value, onChange, placeholder, onKeyDown }
 }
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
-function Sidebar({ conversations, projects, activeId, activeProjectId, selectConv, newConv, deleteConv, setActiveProjectId, createProject, deleteProject }) {
+function Sidebar({ conversations, projects, activeId, activeProjectId, selectConv, newConv, deleteConv, setActiveProjectId, createProject, deleteProject, onUpgrade }) {
   const { user, logout } = useAuth();
   const [showMenu, setShowMenu]   = useState(false);
   const [showNewProj, setShowNewProj] = useState(false);
@@ -221,7 +221,7 @@ function Sidebar({ conversations, projects, activeId, activeProjectId, selectCon
     { icon: "🌐", label: "Language", arrow: true },
     { icon: "❓", label: "Get help" },
     null,
-    { icon: "⬆️", label: "Upgrade plan", action: () => setShowPricing(true) },
+    { icon: "⬆️", label: "Upgrade plan", action: () => onUpgrade() },
     { icon: "🎁", label: "Gift rk.ai" },
     null,
     { icon: "↪️", label: "Log out", action: logout, danger: true },
@@ -803,7 +803,7 @@ export default function App() {
 
       {/* Sidebar */}
       <Sidebar conversations={conversations} projects={projects} activeId={activeId} activeProjectId={activeProjectId}
-        selectConv={selectConv} newConv={newConv} deleteConv={deleteConv}
+        selectConv={selectConv} newConv={newConv} deleteConv={deleteConv} onUpgrade={() => setShowPricing(true)}
         setActiveProjectId={setActiveProjectId} createProject={createProject} deleteProject={deleteProject} />
 
       {/* Main */}
