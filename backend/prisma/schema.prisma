@@ -1,6 +1,5 @@
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "debian-openssl-3.0.x"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -10,74 +9,86 @@ datasource db {
 }
 
 model User {
-  id             String    @id @default(cuid())
-  email          String    @unique
-  name           String?
-  password       String?
-  avatar         String?
-  googleId       String?   @unique
-  plan           String    @default("free")
-  planBilling    String?
-  planExpiresAt  DateTime?
-  planPaymentId  String?
-  msgCount       Int       @default(0)
-  msgResetDate   DateTime  @default(now())
-  stripeId       String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  conversations  Conversation[]
-  projects       Project[]
-  payments       Payment[]
-}
-
-model Conversation {
-  id        String    @id @default(cuid())
-  title     String    @default("New Conversation")
-  userId    String
-  projectId String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project   Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  messages  Message[]
-}
-
-model Message {
-  id             String   @id @default(cuid())
-  conversationId String
-  role           String
-  content        String
-  model          String?
-  createdAt      DateTime @default(now())
-
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  id            String         @id @default(uuid())
+  email         String         @unique
+  name          String
+  avatar        String?
+  googleId      String?        @unique
+  password      String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  conversations Conversation[]
+  projects      Project[]
+  @@index([email])
+  @@index([googleId])
 }
 
 model Project {
-  id            String   @id @default(cuid())
+  id            String         @id @default(uuid())
   name          String
   description   String?
+  systemPrompt  String?        @default("You are a helpful AI assistant.")
   userId        String
-  systemPrompt  String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   conversations Conversation[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  @@index([userId])
 }
 
-model Payment {
-  id        String   @id @default(cuid())
+model Conversation {
+  id        String    @id @default(uuid())
+  title     String    @default("New Chat")
   userId    String
-  orderId   String   @unique
-  paymentId String?
-  plan      String
-  billing   String
-  amount    Int
-  status    String   @default("pending")
-  createdAt DateTime @default(now())
+  projectId String?
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project   Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  messages  Message[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  @@index([userId])
+  @@index([projectId])
+  @@index([userId, updatedAt])
+}
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+model Message {
+  id             String       @id @default(uuid())
+  role           String
+  content        String       @db.Text
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  fileUrl        String?
+  fileName       String?
+  fileType       String?
+  createdAt      DateTime     @default(now())
+  @@index([conversationId])
+  @@index([conversationId, createdAt])
+}
+
+// ─── DB Flywheel: Knowledge Cache ─────────────────────────────────────────────
+// Every unique question answered by API gets stored here.
+// Next time same question asked → served FREE from DB, zero API cost.
+model KnowledgeCache {
+  id           String   @id @default(uuid())
+  questionHash String   @unique          // SHA-256 of normalized question
+  question     String   @db.Text         // original question text
+  answer       String   @db.Text         // AI answer stored forever
+  model        String                    // which model answered it
+  hitCount     Int      @default(1)      // how many times served from cache
+  savedCost    Float    @default(0)      // estimated $ saved (API cost avoided)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  @@index([questionHash])
+  @@index([hitCount])
+  @@index([createdAt])
+}
+
+// ─── Cache Stats (daily rollup) ───────────────────────────────────────────────
+model CacheStats {
+  id          String   @id @default(uuid())
+  date        DateTime @default(now()) @db.Date
+  totalHits   Int      @default(0)   // DB hits (free responses)
+  totalMisses Int      @default(0)   // API calls made
+  costSaved   Float    @default(0)   // $ saved that day
+  @@index([date])
 }
