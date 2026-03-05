@@ -8,35 +8,68 @@ dotenv.config();
 
 const router = express.Router();
 
+// ── Init Razorpay once (not per-request) ─────────────────────
+const getRazorpay = () => {
+  const key_id     = process.env.RAZORPAY_KEY_ID?.trim();
+  const key_secret = process.env.RAZORPAY_KEY_SECRET?.trim();
+
+  if (!key_id || !key_secret) {
+    throw new Error(`Razorpay env missing — KEY_ID: ${!!key_id}, SECRET: ${!!key_secret}`);
+  }
+  return new Razorpay({ key_id, key_secret });
+};
 
 // ── POST /payments/create-order ──────────────────────────────
 router.post('/create-order', authenticate, async (req, res) => {
   const { plan, billing } = req.body;
-  const prices = { pro_monthly: 99900, pro_yearly: 82900, max_monthly: 299900, max_yearly: 248900 };
-  const amount = prices[`${plan}_${billing || "monthly"}`];
-  if (!plan || !amount) return res.status(400).json({ error: "invalid plan or billing" });
-  if (!process.env.RAZORPAY_KEY_ID) return res.status(500).json({ error: "Razorpay not configured" });
-  const razorpay = new Razorpay({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_KEY_SECRET });
+
+  const prices = {
+    pro_monthly:  99900,
+    pro_yearly:   82900,
+    max_monthly:  299900,
+    max_yearly:   248900,
+  };
+
+  const key = `${plan}_${billing || 'monthly'}`;
+  const amount = prices[key];
+
+  if (!plan || !amount) {
+    return res.status(400).json({ error: `Invalid plan/billing: ${key}` });
+  }
 
   try {
+    const razorpay = getRazorpay();
+
     const order = await razorpay.orders.create({
       amount,
       currency: 'INR',
       receipt:  `rkai_${req.user.id}_${Date.now()}`,
-      notes: { userId: req.user.id, plan, email: req.user.email },
+      notes:    { userId: req.user.id, plan, email: req.user.email },
     });
 
-    console.log(`💳 Order: ${order.id} | ${req.user.email} | ${plan}`);
+    console.log(`💳 Order created: ${order.id} | ${req.user.email} | ${plan}`);
 
     res.json({
       orderId:  order.id,
       amount:   order.amount,
       currency: order.currency,
-      key:      process.env.RAZORPAY_KEY_ID,
+      key:      process.env.RAZORPAY_KEY_ID?.trim(),
     });
+
   } catch (e) {
-    console.error('❌ Order error:', JSON.stringify(e));
-    res.status(500).json({ error: 'Failed to create order' });
+    // ✅ Properly log Razorpay errors (they are NOT plain Error objects)
+    console.error('❌ Order error:', {
+      message:     e.message,
+      statusCode:  e.statusCode,
+      error:       e.error,          // Razorpay puts details here
+      description: e.error?.description,
+    });
+
+    res.status(500).json({
+      error:       'Failed to create order',
+      // Remove the line below in production if you don't want to expose details
+      detail:      e.error?.description || e.message,
+    });
   }
 });
 
@@ -49,9 +82,8 @@ router.post('/verify', authenticate, async (req, res) => {
   }
 
   try {
-    // Verify Razorpay signature
     const expected = crypto
-      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET?.trim())
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
       .digest('hex');
 
@@ -60,21 +92,14 @@ router.post('/verify', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'Invalid payment signature' });
     }
 
-    // Set plan expiry (1 month)
     const expiresAt = new Date();
     expiresAt.setMonth(expiresAt.getMonth() + 1);
 
-    // Update user plan
     await prisma.user.update({
       where: { id: req.user.id },
-      data: {
-        plan,
-        planExpiresAt:  expiresAt,
-        planPaymentId:  razorpay_payment_id,
-      },
+      data:  { plan, planExpiresAt: expiresAt, planPaymentId: razorpay_payment_id },
     });
 
-    // Save payment record
     await prisma.payment.create({
       data: {
         userId:    req.user.id,
