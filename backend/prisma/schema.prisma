@@ -9,20 +9,31 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  email         String         @unique
-  name          String
-  avatar        String?
-  googleId      String?        @unique
-  password      String?
-  plan          String         @default("free")
-  msgCount      Int            @default(0)
-  msgResetDate  DateTime       @default(now())
-  stripeId      String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  conversations Conversation[]
-  projects      Project[]
+  id             String         @id @default(cuid())
+  email          String         @unique
+  name           String
+  avatar         String?
+  googleId       String?        @unique
+  password       String?
+
+  // Plan
+  plan           String         @default("free")
+  planBilling    String?
+  planExpiresAt  DateTime?
+  planPaymentId  String?
+
+  // Usage tracking
+  msgCount       Int            @default(0)
+  msgResetDate   DateTime       @default(now())
+
+  // Legacy / Stripe (keep for compatibility)
+  stripeId       String?
+
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  conversations  Conversation[]
+  projects       Project[]
 
   @@index([email])
 }
@@ -71,4 +82,20 @@ model Message {
   createdAt      DateTime     @default(now())
 
   @@index([conversationId, createdAt])
+}
+
+model Payment {
+  id          String   @id @default(cuid())
+  userId      String
+  orderId     String   @unique
+  paymentId   String?  @unique
+  plan        String
+  billing     String
+  amount      Int
+  currency    String   @default("INR")
+  status      String   @default("created")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
 }
