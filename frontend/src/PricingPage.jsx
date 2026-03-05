@@ -67,9 +67,10 @@ const plans = [
 
 export default function PricingPage({ onClose }) {
   const { user, authFetch } = useAuth();
-  const [billing, setBilling] = useState("monthly"); // monthly | yearly
+  const [billing, setBilling] = useState("monthly");
   const [loading, setLoading] = useState(null);
   const [error, setError]     = useState("");
+  const [success, setSuccess] = useState("");
 
   const getPrice = (plan) => {
     if (plan.price === 0) return "Free";
@@ -77,86 +78,117 @@ export default function PricingPage({ onClose }) {
     return `₹${p}/mo`;
   };
 
+  // ── Load Razorpay script once ──────────────────────────────
+  const loadRazorpay = () => new Promise((res, rej) => {
+    if (window.Razorpay) return res();
+    const s = document.createElement("script");
+    s.src = "https://checkout.razorpay.com/v1/checkout.js";
+    s.onload = res;
+    s.onerror = () => rej(new Error("Failed to load Razorpay SDK"));
+    document.body.appendChild(s);
+  });
+
   const handleUpgrade = async (plan) => {
-    if (plan.disabled) return;
+    if (plan.disabled || loading) return;
     setError("");
+    setSuccess("");
     setLoading(plan.id);
 
     try {
-      // 1. Create Razorpay order from backend
+      // ── Step 1: Create order ───────────────────────────────
       const r = await authFetch("/payments/create-order", {
-        method: "POST",
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: plan.id, billing }),
+        body:    JSON.stringify({ plan: plan.id, billing }),
       });
       const order = await r.json();
-      if (!r.ok) throw new Error(order.error || "Failed to create order");
+      if (!r.ok) throw new Error(order.detail || order.error || "Failed to create order");
 
-      // 2. Open Razorpay checkout
-      const options = {
-        key:         order.key,
-        amount:      order.amount,
-        currency:    order.currency,
-        name:        "rk.ai",
-        description: `${plan.name} Plan`,
-        order_id:    order.orderId,
-        prefill: {
-          name:  user?.name  || "",
-          email: user?.email || "",
-        },
-        theme: { color: plan.color },
-        handler: async (response) => {
-          // 3. Verify payment on backend
-          const vr = await authFetch("/payments/verify", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...response, plan: plan.id, billing }),
-          });
-          const vd = await vr.json();
-          if (vr.ok && vd.success) {
-            alert(`🎉 Welcome to rk.ai ${plan.name}! Your plan is now active.`);
-            onClose?.();
-            window.location.reload();
-          } else {
-            setError("Payment verification failed. Please contact support.");
-          }
-        },
-        modal: { ondismiss: () => setLoading(null) },
-      };
+      await loadRazorpay();
 
-      // Load Razorpay script if not loaded
-      if (!window.Razorpay) {
-        await new Promise((res, rej) => {
-          const s = document.createElement("script");
-          s.src = "https://checkout.razorpay.com/v1/checkout.js";
-          s.onload = res; s.onerror = rej;
-          document.body.appendChild(s);
+      // ── Step 2: Open Razorpay ──────────────────────────────
+      await new Promise((resolve, reject) => {
+        const options = {
+          key:         order.key,
+          amount:      order.amount,
+          currency:    order.currency,
+          name:        "rk.ai",
+          description: `${plan.name} Plan`,
+          order_id:    order.orderId,
+          prefill: {
+            name:  user?.name  || "",
+            email: user?.email || "",
+          },
+          theme: { color: plan.color },
+
+          // ── Step 3: Verify on success ──────────────────────
+          handler: async (response) => {
+            try {
+              setLoading("verifying");
+              const vr = await authFetch("/payments/verify", {
+                method:  "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  razorpay_order_id:   response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature:  response.razorpay_signature,
+                  plan:    plan.id,
+                  billing: billing,
+                }),
+              });
+              const vd = await vr.json();
+
+              if (vr.ok && vd.success) {
+                setSuccess(`🎉 Welcome to rk.ai ${plan.name}! Your plan is now active.`);
+                resolve();
+                // Reload after 2s so user sees the success message
+                setTimeout(() => { onClose?.(); window.location.reload(); }, 2000);
+              } else {
+                const errMsg = vd.error || vd.detail || "Verification failed";
+                console.error("Verify failed:", vd);
+                reject(new Error(errMsg));
+              }
+            } catch (e) {
+              reject(e);
+            }
+          },
+
+          modal: {
+            ondismiss: () => {
+              resolve(); // dismissed — not an error, just stop loading
+            },
+          },
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.on("payment.failed", (resp) => {
+          reject(new Error(resp.error?.description || "Payment failed"));
         });
-      }
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
+        rzp.open();
+      });
 
     } catch (e) {
-      setError(e.message);
+      console.error("Payment error:", e.message);
+      setError(e.message || "Something went wrong. Please try again.");
     } finally {
       setLoading(null);
     }
   };
+
+  const isLoading = loading !== null;
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <div style={{ background: "#faf8f5", borderRadius: 20, maxWidth: 900, width: "100%", maxHeight: "90vh", overflowY: "auto", padding: "40px 32px", position: "relative" }}>
 
         {/* Close */}
-        <button onClick={onClose} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", cursor: "pointer", fontSize: 22, color: "#999", lineHeight: 1 }}>✕</button>
+        <button onClick={onClose} disabled={isLoading} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", cursor: isLoading ? "default" : "pointer", fontSize: 22, color: "#999", lineHeight: 1 }}>✕</button>
 
         {/* Header */}
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <h1 style={{ fontSize: 28, fontWeight: 700, color: "#1a1a1a", letterSpacing: "-0.02em" }}>Plans that grow with you</h1>
           <p style={{ color: "#666", marginTop: 6, fontSize: 15 }}>Choose the right plan for your needs</p>
 
-          {/* Billing toggle */}
           <div style={{ display: "inline-flex", alignItems: "center", gap: 0, marginTop: 20, background: "#e8e2da", borderRadius: 10, padding: 3 }}>
             {["monthly", "yearly"].map(b => (
               <button key={b} onClick={() => setBilling(b)}
@@ -167,9 +199,24 @@ export default function PricingPage({ onClose }) {
           </div>
         </div>
 
+        {/* Error banner */}
         {error && (
           <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "10px 14px", marginBottom: 20, color: "#dc2626", fontSize: 13, textAlign: "center" }}>
-            {error}
+            ❌ {error}
+          </div>
+        )}
+
+        {/* Success banner */}
+        {success && (
+          <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "10px 14px", marginBottom: 20, color: "#16a34a", fontSize: 13, textAlign: "center" }}>
+            {success}
+          </div>
+        )}
+
+        {/* Verifying overlay */}
+        {loading === "verifying" && (
+          <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: "10px 14px", marginBottom: 20, color: "#92400e", fontSize: 13, textAlign: "center" }}>
+            ⏳ Verifying your payment, please wait...
           </div>
         )}
 
@@ -186,7 +233,6 @@ export default function PricingPage({ onClose }) {
                 </div>
               )}
 
-              {/* Plan header */}
               <div style={{ marginBottom: 20 }}>
                 <h2 style={{ fontSize: 20, fontWeight: 700, color: "#1a1a1a", marginBottom: 4 }}>{plan.name}</h2>
                 <p style={{ fontSize: 13, color: "#888", marginBottom: 16 }}>{plan.desc}</p>
@@ -201,15 +247,17 @@ export default function PricingPage({ onClose }) {
                 )}
               </div>
 
-              {/* CTA button */}
-              <button onClick={() => handleUpgrade(plan)} disabled={plan.disabled || loading === plan.id}
-                style={{ width: "100%", padding: "11px", background: plan.disabled ? "#f0f0f0" : plan.color, border: "none", borderRadius: 10, color: plan.disabled ? "#aaa" : "#fff", fontSize: 14, fontWeight: 600, cursor: plan.disabled ? "default" : "pointer", marginBottom: 20, opacity: loading === plan.id ? 0.75 : 1, transition: "all .15s" }}
-                onMouseEnter={e => { if (!plan.disabled) e.currentTarget.style.opacity = "0.88"; }}
-                onMouseLeave={e => { if (!plan.disabled) e.currentTarget.style.opacity = "1"; }}>
-                {loading === plan.id ? "Processing..." : plan.cta}
+              <button
+                onClick={() => handleUpgrade(plan)}
+                disabled={plan.disabled || isLoading}
+                style={{ width: "100%", padding: "11px", background: plan.disabled ? "#f0f0f0" : plan.color, border: "none", borderRadius: 10, color: plan.disabled ? "#aaa" : "#fff", fontSize: 14, fontWeight: 600, cursor: (plan.disabled || isLoading) ? "default" : "pointer", marginBottom: 20, opacity: (loading === plan.id || loading === "verifying") ? 0.75 : 1, transition: "all .15s" }}
+                onMouseEnter={e => { if (!plan.disabled && !isLoading) e.currentTarget.style.opacity = "0.88"; }}
+                onMouseLeave={e => { if (!plan.disabled && !isLoading) e.currentTarget.style.opacity = "1"; }}>
+                {loading === plan.id ? "Opening payment..." :
+                 loading === "verifying" ? "Verifying..." :
+                 plan.cta}
               </button>
 
-              {/* Features */}
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#888", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.06em" }}>
                   {plan.id === "free" ? "Includes" : "Everything in " + (plan.id === "pro" ? "Free" : "Pro") + ", plus:"}
@@ -227,7 +275,6 @@ export default function PricingPage({ onClose }) {
           ))}
         </div>
 
-        {/* Footer */}
         <p style={{ textAlign: "center", fontSize: 12, color: "#aaa", marginTop: 24 }}>
           Payments processed securely by Razorpay · Cancel anytime · GST applicable
         </p>
