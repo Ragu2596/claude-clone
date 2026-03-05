@@ -200,7 +200,6 @@ function Sidebar({ conversations, projects, activeId, activeProjectId, selectCon
   const [showNewProj, setShowNewProj] = useState(false);
   const [pForm, setPForm]         = useState({ name: "", prompt: "You are a helpful AI assistant." });
   const [hovConv, setHovConv]     = useState(null);
-  const [showPricing, setShowPricing] = useState(false);
   const [hovProj, setHovProj]     = useState(null);
   const menuRef = useRef(null);
 
@@ -781,6 +780,7 @@ function LoadingScreen() {
 // ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const { user, loading } = useAuth();
+  const [showPricing, setShowPricing] = useState(false);
   const {
     conversations, activeId, messages, streaming,
     projects, activeProjectId,
