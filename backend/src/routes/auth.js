@@ -6,11 +6,11 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const router     = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET         || 'dev-secret';
+const JWT_SECRET = process.env.JWT_SECRET          || 'dev-secret';
 const CLIENT_ID  = process.env.GOOGLE_CLIENT_ID;
 const CLIENT_SEC = process.env.GOOGLE_CLIENT_SECRET;
 const CALLBACK   = process.env.GOOGLE_CALLBACK_URL;
-const FRONTEND   = process.env.FRONTEND_URL        || 'http://localhost:5173';
+const FRONTEND   = process.env.FRONTEND_URL         || 'http://localhost:5173';
 
 function genToken(userId) {
   return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '30d' });
@@ -18,12 +18,13 @@ function genToken(userId) {
 
 // ── Debug ─────────────────────────────────────────────────────
 router.get('/debug', (req, res) => res.json({
-  googleClientId: CLIENT_ID  ? CLIENT_ID.slice(0, 30) + '...' : '❌ MISSING',
+  googleClientId: CLIENT_ID  ? CLIENT_ID.slice(0, 20) + '...' : '❌ MISSING',
   googleSecret:   CLIENT_SEC ? '✅ set' : '❌ MISSING',
   callbackUrl:    CALLBACK   || '❌ MISSING',
   frontendUrl:    FRONTEND,
   nodeEnv:        process.env.NODE_ENV,
   nodeVersion:    process.version,
+  uptime:         Math.round(process.uptime()) + 's',
 }));
 
 // ── Register ──────────────────────────────────────────────────
@@ -87,11 +88,11 @@ router.get('/me', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// ✅ MANUAL GOOGLE OAUTH — uses Node built-in fetch (Node 18+)
-//    No passport. No axios. No session. No state. Bulletproof.
+// GOOGLE OAUTH — Manual, no passport, no session, no state
+// Uses built-in Node fetch (Node 18+)
 // ─────────────────────────────────────────────────────────────
 
-// Step 1 — Send user to Google
+// Fallback redirect (used if VITE_GOOGLE_CLIENT_ID not set on frontend)
 router.get('/google', (req, res) => {
   if (!CLIENT_ID || !CLIENT_SEC) {
     console.error('❌ Google not configured');
@@ -105,21 +106,22 @@ router.get('/google', (req, res) => {
     prompt:        'select_account',
     access_type:   'online',
   });
-  console.log('🚀 Google OAuth → redirecting, callback:', CALLBACK);
+  console.log('🚀 /auth/google → Google | uptime:', Math.round(process.uptime()) + 's');
   res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
 });
 
-// Step 2 — Google sends code back here
+// ✅ Callback — this runs AFTER backend is already warm
 router.get('/google/callback', async (req, res) => {
   const { code, error } = req.query;
-  console.log('📥 Google callback | has code:', !!code, '| error:', error || 'none');
+  console.log('📥 /google/callback | code:', !!code, '| error:', error || 'none', '| uptime:', Math.round(process.uptime()) + 's');
 
   if (error || !code) {
+    console.error('❌ No code from Google:', error);
     return res.redirect(`${FRONTEND}?error=google_failed&msg=${encodeURIComponent(error || 'no_code')}`);
   }
 
   try {
-    // Exchange code → access token using built-in fetch
+    // Exchange code for token
     const tokenBody = new URLSearchParams({
       code,
       client_id:     CLIENT_ID,
@@ -128,7 +130,7 @@ router.get('/google/callback', async (req, res) => {
       grant_type:    'authorization_code',
     });
 
-    console.log('🔄 Exchanging code for token...');
+    console.log('🔄 Exchanging code...');
     const tokenRes  = await fetch('https://oauth2.googleapis.com/token', {
       method:  'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -136,26 +138,25 @@ router.get('/google/callback', async (req, res) => {
     });
     const tokenData = await tokenRes.json();
 
-    console.log('📦 Token response status:', tokenRes.status);
-
     if (!tokenRes.ok || !tokenData.access_token) {
-      const errMsg = tokenData.error_description || tokenData.error || 'token_exchange_failed';
-      console.error('❌ Token exchange failed:', errMsg, JSON.stringify(tokenData));
-      return res.redirect(`${FRONTEND}?error=google_failed&msg=${encodeURIComponent(errMsg)}`);
+      const msg = tokenData.error_description || tokenData.error || 'token_failed';
+      console.error('❌ Token exchange failed:', msg, tokenData);
+      return res.redirect(`${FRONTEND}?error=google_failed&msg=${encodeURIComponent(msg)}`);
     }
 
-    // Fetch profile using access token
-    console.log('🔄 Fetching user profile...');
-    const profileRes  = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+    console.log('✅ Token received, fetching profile...');
+
+    // Get user info
+    const profileRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: { Authorization: `Bearer ${tokenData.access_token}` },
     });
     const profile = await profileRes.json();
 
+    if (!profile.email) throw new Error('No email from Google profile');
+
     console.log('👤 Profile:', profile.email);
 
-    if (!profile.email) throw new Error('No email from Google');
-
-    // Upsert user in DB
+    // Upsert user
     let user = await prisma.user.findUnique({ where: { googleId: profile.id } });
 
     if (!user) {
@@ -165,7 +166,7 @@ router.get('/google/callback', async (req, res) => {
           where: { id: user.id },
           data:  { googleId: profile.id, avatar: profile.picture || user.avatar },
         });
-        console.log('🔗 Linked Google to existing account:', profile.email);
+        console.log('🔗 Linked Google:', profile.email);
       } else {
         user = await prisma.user.create({
           data: {
@@ -175,16 +176,16 @@ router.get('/google/callback', async (req, res) => {
             googleId: profile.id,
           },
         });
-        console.log('🆕 New user:', profile.email);
+        console.log('🆕 Created user:', profile.email);
       }
     }
 
     const token = genToken(user.id);
-    console.log('✅ Google login success:', profile.email, '→', FRONTEND);
+    console.log('✅ Success:', profile.email, '→ redirecting to', FRONTEND);
     return res.redirect(`${FRONTEND}?token=${token}`);
 
   } catch (e) {
-    console.error('❌ OAuth callback crash:', e.message);
+    console.error('❌ Callback error:', e.message);
     return res.redirect(`${FRONTEND}?error=google_failed&msg=${encodeURIComponent(e.message)}`);
   }
 });
