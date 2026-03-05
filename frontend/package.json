@@ -2,10 +2,13 @@
   "name": "claude-clone-backend",
   "version": "1.0.0",
   "type": "module",
+  "prisma": {
+    "schema": "prisma/schema.prisma"
+  },
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "build": "npx prisma generate && npx prisma db push",
+    "build": "npx prisma generate && npx prisma db push --accept-data-loss",
     "db:push": "npx prisma db push",
     "db:generate": "npx prisma generate"
   },
