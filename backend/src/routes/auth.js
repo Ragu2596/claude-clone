@@ -100,7 +100,7 @@ router.get('/debug', (req, res) => {
   res.json({
     googleConfigured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
     callbackUrl: process.env.GOOGLE_CALLBACK_URL,
-    frontendUrl: process.env.FRONTEND_URL,
+    frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
     sessionExists: !!req.session,
   });
 });
@@ -176,10 +176,11 @@ router.get('/google/callback', (req, res, next) => {
 
   passport.authenticate('google', (err, user, info) => {
     console.log('🔐 Passport result - err:', err?.message, '| user:', user?.email, '| info:', info);
+    const FE = process.env.FRONTEND_URL || 'http://localhost:5173';
+    console.log('🌐 Redirecting to FRONTEND_URL:', FE);
 
     if (err) {
       console.error('❌ OAuth error:', err.message, err.stack);
-      const FE = process.env.FRONTEND_URL || "http://localhost:5173";
       return res.redirect(`${FE}?error=google_failed&msg=${encodeURIComponent(err.message)}`);
     }
     if (!user) {
@@ -188,7 +189,7 @@ router.get('/google/callback', (req, res, next) => {
     }
 
     const token = genToken(user.id);
-    console.log('✅ Google login success for:', user.email);
+    console.log('✅ Google login success for:', user.email, '→', FE);
     return res.redirect(`${FE}?token=${token}`);
   })(req, res, next);
 });
