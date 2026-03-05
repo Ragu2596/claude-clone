@@ -86,4 +86,4 @@ app.listen(PORT, () => {
   console.log(`   Gemini       : ${process.env.GEMINI_API_KEY       ? '✅' : '❌ NOT SET'}`);
   console.log(`   Anthropic    : ${process.env.ANTHROPIC_API_KEY    ? '✅' : '❌ NOT SET'}`);
   console.log(`   Razorpay     : ${process.env.RAZORPAY_KEY_ID      ? '✅' : '❌ NOT SET'}\n`);
-});
+});// deploy Thu Mar  5 12:17:06 IST 2026
