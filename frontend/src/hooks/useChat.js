@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 
-const API = "http://localhost:3001";
+const API = import.meta.env.VITE_API_URL;
 
 export function useChat() {
   const { user } = useAuth();
