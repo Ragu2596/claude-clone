@@ -5,6 +5,7 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useAuth } from "./context/AuthContext";
 import { useChat } from "./hooks/useChat";
+import PricingPage from "./PricingPage";
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 const Icon = ({ d, size = 16, stroke = "currentColor", fill = "none", sw = 2 }) => (
@@ -199,6 +200,7 @@ function Sidebar({ conversations, projects, activeId, activeProjectId, selectCon
   const [showNewProj, setShowNewProj] = useState(false);
   const [pForm, setPForm]         = useState({ name: "", prompt: "You are a helpful AI assistant." });
   const [hovConv, setHovConv]     = useState(null);
+  const [showPricing, setShowPricing] = useState(false);
   const [hovProj, setHovProj]     = useState(null);
   const menuRef = useRef(null);
 
@@ -220,7 +222,7 @@ function Sidebar({ conversations, projects, activeId, activeProjectId, selectCon
     { icon: "🌐", label: "Language", arrow: true },
     { icon: "❓", label: "Get help" },
     null,
-    { icon: "⬆️", label: "Upgrade plan" },
+    { icon: "⬆️", label: "Upgrade plan", action: () => setShowPricing(true) },
     { icon: "🎁", label: "Gift rk.ai" },
     null,
     { icon: "↪️", label: "Log out", action: logout, danger: true },
@@ -844,6 +846,7 @@ export default function App() {
 
       {/* Artifact panel */}
       {artifact && <ArtifactPanel code={artifact.code} lang={artifact.lang} onClose={() => setArtifact(null)} />}
+      {showPricing && <PricingPage onClose={() => setShowPricing(false)} user={user} />}
     </div>
   );
 }
