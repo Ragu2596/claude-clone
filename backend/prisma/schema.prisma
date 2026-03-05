@@ -9,18 +9,36 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(uuid())
-  email         String         @unique
-  name          String
-  avatar        String?
-  googleId      String?        @unique
-  password      String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  conversations Conversation[]
-  projects      Project[]
+  id             String    @id @default(uuid())
+  email          String    @unique
+  name           String
+  avatar         String?
+  googleId       String?   @unique
+  password       String?
+  plan           String    @default("free")
+  planExpiresAt  DateTime?
+  planPaymentId  String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  conversations  Conversation[]
+  projects       Project[]
+  payments       Payment[]
   @@index([email])
   @@index([googleId])
+}
+
+model Payment {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId   String
+  paymentId String
+  plan      String
+  billing   String   @default("monthly")
+  amount    Int
+  status    String   @default("paid")
+  createdAt DateTime @default(now())
+  @@index([userId])
 }
 
 model Project {
@@ -65,17 +83,14 @@ model Message {
   @@index([conversationId, createdAt])
 }
 
-// ─── DB Flywheel: Knowledge Cache ─────────────────────────────────────────────
-// Every unique question answered by API gets stored here.
-// Next time same question asked → served FREE from DB, zero API cost.
 model KnowledgeCache {
   id           String   @id @default(uuid())
-  questionHash String   @unique          // SHA-256 of normalized question
-  question     String   @db.Text         // original question text
-  answer       String   @db.Text         // AI answer stored forever
-  model        String                    // which model answered it
-  hitCount     Int      @default(1)      // how many times served from cache
-  savedCost    Float    @default(0)      // estimated $ saved (API cost avoided)
+  questionHash String   @unique
+  question     String   @db.Text
+  answer       String   @db.Text
+  model        String
+  hitCount     Int      @default(1)
+  savedCost    Float    @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   @@index([questionHash])
@@ -83,12 +98,11 @@ model KnowledgeCache {
   @@index([createdAt])
 }
 
-// ─── Cache Stats (daily rollup) ───────────────────────────────────────────────
 model CacheStats {
   id          String   @id @default(uuid())
   date        DateTime @default(now()) @db.Date
-  totalHits   Int      @default(0)   // DB hits (free responses)
-  totalMisses Int      @default(0)   // API calls made
-  costSaved   Float    @default(0)   // $ saved that day
+  totalHits   Int      @default(0)
+  totalMisses Int      @default(0)
+  costSaved   Float    @default(0)
   @@index([date])
 }
