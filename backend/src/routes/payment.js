@@ -75,7 +75,7 @@ router.post('/create-order', authenticate, async (req, res) => {
 
 // ── POST /payments/verify ────────────────────────────────────
 router.post('/verify', authenticate, async (req, res) => {
-  const { razorpay_order_id, razorpay_payment_id, razorpay_signature, plan } = req.body;
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature, plan, billing } = req.body;
 
   if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
     return res.status(400).json({ error: 'Missing payment details' });
