@@ -292,7 +292,9 @@ function Sidebar({ conversations, projects, activeId, activeProjectId, selectCon
           <Avatar user={user} size={30} />
           <div style={{ flex: 1, textAlign: "left", overflow: "hidden" }}>
             <p style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.name}</p>
-            <p style={{ fontSize: 11, color: "var(--text3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.email}</p>
+            <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 1 }}>
+              <PlanBadge plan={user?.plan} small />
+            </div>
           </div>
           <ChevronDown size={13} />
         </button>
@@ -350,6 +352,29 @@ function Avatar({ user, size = 30 }) {
         ? <img src={user.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         : <span style={{ fontSize: size * 0.44, fontWeight: 700, color: "#fff" }}>{user?.name?.[0]?.toUpperCase()}</span>}
     </div>
+  );
+}
+
+// ─── Plan Badge ───────────────────────────────────────────────
+function PlanBadge({ plan, small = false }) {
+  if (!plan || plan === "free") return (
+    <span style={{ fontSize: small ? 10 : 11, color: "var(--text3)" }}>Free plan</span>
+  );
+  const cfg = {
+    pro:  { label: "PRO",  bg: "#c96442", icon: "⚡" },
+    max:  { label: "MAX",  bg: "#7c3aed", icon: "✦"  },
+  }[plan] || { label: plan.toUpperCase(), bg: "#6b7280", icon: "•" };
+
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 3,
+      fontSize: small ? 10 : 11, fontWeight: 700,
+      background: cfg.bg, color: "#fff",
+      padding: small ? "1px 6px" : "2px 8px",
+      borderRadius: 99,
+    }}>
+      {cfg.icon} {cfg.label}
+    </span>
   );
 }
 
@@ -863,6 +888,7 @@ export default function App() {
           <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 10px", background: "#fff", border: "1px solid var(--border)", borderRadius: 8, flexShrink: 0 }}>
             <Avatar user={user} size={22} />
             {!isMobile && <span style={{ fontSize: 12.5, fontWeight: 500, color: "var(--text)" }}>{user.name}</span>}
+            <PlanBadge plan={user?.plan} />
           </div>
         </div>
 
