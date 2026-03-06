@@ -1,3 +1,4 @@
+import { startKeepAlive } from './keepalive.js';
 import express from 'express';
 import cors from 'cors';
 import session from 'express-session';
@@ -15,18 +16,17 @@ if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 const app = express();
 
-// ── CORS — allow frontend + localhost for dev ─────────────────
+// ── CORS ──────────────────────────────────────────────────────
 const allowedOrigins = [
-  process.env.FRONTEND_URL,                // https://rkai-frontend.onrender.com
-  'http://localhost:5173',                  // local dev
-  'http://localhost:3000',                  // local dev alt
-].filter(Boolean).map(o => o.replace(/\/$/, '')); // remove trailing slashes
+  process.env.FRONTEND_URL,
+  'http://localhost:5173',
+  'http://localhost:3000',
+].filter(Boolean).map(o => o.replace(/\/$/, ''));
 
 console.log('🌐 Allowed origins:', allowedOrigins);
 
 app.use(cors({
   origin: (origin, cb) => {
-    // Allow requests with no origin (mobile apps, curl, Postman)
     if (!origin) return cb(null, true);
     const clean = origin.replace(/\/$/, '');
     if (allowedOrigins.includes(clean)) return cb(null, true);
@@ -38,20 +38,16 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// Handle preflight for ALL routes
 app.options('*', cors());
 
-// ── No-cache on all API responses ─────────────────────────────
 app.use((req, res, next) => {
   res.set('Cache-Control', 'no-store');
   next();
 });
 
-// ── Body parsers ──────────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// ── Session ───────────────────────────────────────────────────
 app.use(session({
   secret:            process.env.SESSION_SECRET || 'dev-session-secret',
   resave:            false,
@@ -63,7 +59,6 @@ app.use(session({
   },
 }));
 
-// ── Static uploads ────────────────────────────────────────────
 app.use('/uploads', express.static(uploadsDir, { maxAge: '7d' }));
 
 // ── Routes ────────────────────────────────────────────────────
@@ -104,4 +99,7 @@ app.listen(PORT, () => {
   console.log(`   Groq      : ${process.env.GROQ_API_KEY         ? '✅' : '❌'}`);
   console.log(`   Gemini    : ${process.env.GEMINI_API_KEY       ? '✅' : '❌'}`);
   console.log(`   Razorpay  : ${process.env.RAZORPAY_KEY_ID      ? '✅' : '❌'}\n`);
+
+  // ✅ Start keep-alive pings to prevent Render cold starts
+  startKeepAlive();
 });
