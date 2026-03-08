@@ -222,7 +222,7 @@ export async function getBusinessSummary() {
     prisma.user.count(),
     prisma.user.count({ where: { plan: { not: 'free' } } }),
 
-    prisma.payment.aggregate({ _sum: { amount: true }, where: { createdAt: { gte: monthStart }, status: 'paid' } }),
+    prisma.payment.aggregate({ _sum: { amount: true }, where: { status: 'paid' } }),  // ALL-TIME revenue
     prisma.payment.aggregate({ _sum: { amount: true }, where: { createdAt: { gte: lastMonth, lt: monthStart }, status: 'paid' } }),
 
     prisma.apiUsageLog.aggregate({ _sum: { costMicro: true }, where: { createdAt: { gte: monthStart } } }),

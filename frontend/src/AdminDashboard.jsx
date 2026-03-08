@@ -157,13 +157,13 @@ export default function AdminDashboard() {
   // ── FILTERS ───────────────────────────────────────────────────
   const filtered = users
     .filter(u => filter === "all" ? true : filter === "loss"
-      ? (u.totalRevenue < u.totalCostUSD * 83)
+      ? (u.revenueInr < (u.costInr||0))
       : u.plan === filter)
     .filter(u => !search || u.email.includes(search) || u.name?.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
-      if (sort === "revenue") return b.totalRevenue - a.totalRevenue;
-      if (sort === "cost")    return b.totalCostUSD - a.totalCostUSD;
-      if (sort === "profit")  return (b.totalRevenue - b.totalCostUSD*83) - (a.totalRevenue - a.totalCostUSD*83);
+      if (sort === "revenue") return (b.revenueInr||0) - (a.revenueInr||0);
+      if (sort === "cost")    return (b.totalCostUSD||0) - (a.totalCostUSD||0);
+      if (sort === "profit")  return (b.profitInr||0) - (a.profitInr||0);
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
 
@@ -200,13 +200,13 @@ export default function AdminDashboard() {
         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:12, marginBottom:24 }}>
           <StatCard label="Total Users"     value={s.totalUsers || 0}          color="#60a5fa" />
           <StatCard label="Paid Users"      value={s.paidUsers  || 0}          color="#34d399" sub={`${pct(s.paidUsers,s.totalUsers)}% conversion`} />
-          <StatCard label="Revenue (Est)"   value={INR(s.totalRevenueINR || 0)} color="#a78bfa" />
-          <StatCard label="API Cost"        value={USD(s.totalCostUSD   || 0)} color="#f87171" />
-          <StatCard label="Net Profit"      value={INR((s.totalRevenueINR||0) - ((s.totalCostUSD||0)*83))} color="#34d399" />
-          <StatCard label="Free Users"      value={s.freeUsers  || 0}          color="#6b7280" />
-          <StatCard label="Starter"         value={s.starterUsers||0}          color="#f59e0b" />
-          <StatCard label="Pro Users"       value={s.proUsers   || 0}          color="#c96442" />
-          <StatCard label="Max Users"       value={s.maxUsers   || 0}          color="#7c3aed" />
+          <StatCard label="Revenue (Est)"   value={INR(s.revenueInr || 0)} color="#a78bfa" />
+          <StatCard label="API Cost"        value={`$${((s.costInr||0)/84).toFixed(4)}`} color="#f87171" />
+          <StatCard label="Net Profit"      value={INR(s.profitInr || 0)} color="#34d399" />
+          <StatCard label="Free Users"      value={(s.planBreakdown?.free)||0}          color="#6b7280" />
+          <StatCard label="Starter"         value={(s.planBreakdown?.starter)||0}          color="#f59e0b" />
+          <StatCard label="Pro Users"       value={(s.planBreakdown?.pro)||0}          color="#c96442" />
+          <StatCard label="Max Users"       value={(s.planBreakdown?.max)||0}          color="#7c3aed" />
         </div>
 
         {/* Tabs */}
@@ -260,9 +260,9 @@ export default function AdminDashboard() {
                 </thead>
                 <tbody>
                   {filtered.map((u, i) => {
-                    const rev    = u.totalRevenue || 0;
-                    const cost   = (u.totalCostUSD || 0) * 83;
-                    const profit = rev - cost;
+                    const rev    = u.revenueInr  || 0;
+                    const cost   = u.costInr     || 0;
+                    const profit = u.profitInr   || 0;
                     const isLoss = profit < 0 && u.plan !== "free";
                     return (
                       <tr key={u.id} onClick={() => { setSelUser(u); loadUserLogs(u.id); }}
@@ -275,12 +275,12 @@ export default function AdminDashboard() {
                         </td>
                         <td style={{ padding:"10px 14px" }}><PlanBadge plan={u.plan} /></td>
                         <td style={{ padding:"10px 14px", color:"#34d399", fontWeight:600 }}>{INR(rev)}</td>
-                        <td style={{ padding:"10px 14px", color:"#f87171" }}>{USD(u.totalCostUSD||0)}</td>
+                        <td style={{ padding:"10px 14px", color:"#f87171" }}>{USD(u.costUsd||0)}</td>
                         <td style={{ padding:"10px 14px", color: profit>=0 ? "#34d399":"#f87171", fontWeight:700 }}>
                           {profit>=0 ? "+" : ""}{INR(profit)}
                           {isLoss && <span style={{ marginLeft:6, fontSize:10 }}>⚠️</span>}
                         </td>
-                        <td style={{ padding:"10px 14px", color:"#94a3b8" }}>{u.messageCount || 0}</td>
+                        <td style={{ padding:"10px 14px", color:"#94a3b8" }}>{u._count?.conversations || 0}</td>
                         <td style={{ padding:"10px 14px", color:"#64748b", fontSize:11 }}>
                           {new Date(u.createdAt).toLocaleDateString()}
                         </td>
@@ -309,9 +309,9 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))", gap:10, marginBottom:16 }}>
-                  <StatCard label="Revenue"   value={INR(selUser.totalRevenue||0)} color="#a78bfa" />
-                  <StatCard label="API Cost"  value={USD(selUser.totalCostUSD||0)} color="#f87171" />
-                  <StatCard label="Messages"  value={selUser.messageCount||0}      color="#60a5fa" />
+                  <StatCard label="Revenue"   value={INR(selUser.revenueInr||0)} color="#a78bfa" />
+                  <StatCard label="API Cost"  value={USD(selUser.costUsd||0)} color="#f87171" />
+                  <StatCard label="Messages"  value={selUser._count?.conversations||0}      color="#60a5fa" />
                   <StatCard label="Expires"   value={selUser.planExpiresAt ? new Date(selUser.planExpiresAt).toLocaleDateString() : "—"} color="#94a3b8" />
                 </div>
                 <p style={{ fontSize:12, color:"#64748b", marginBottom:8, fontWeight:600 }}>RECENT USAGE LOGS</p>
