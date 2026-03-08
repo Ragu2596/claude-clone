@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "./context/AuthContext";
 
 const API = import.meta.env.VITE_API_URL;
@@ -115,7 +115,9 @@ const PLAN_RANK = { free: 0, starter: 1, pro: 2, max: 3 };
 export default function PricingPage({ onClose }) {
   const { user }   = useAuth();
   const apiFetch   = useApiFetch();            // ✅ uses JWT from localStorage
-  const [billing,  setBilling]  = useState("monthly");
+  // Default billing tab to what user actually paid for
+  const savedBilling = localStorage.getItem("planBilling") || "monthly";
+  const [billing,  setBilling]  = useState(savedBilling);
   const [currency, setCurrency] = useState("INR");
   const [loading,  setLoading]  = useState(null);
   const [error,    setError]    = useState("");
@@ -127,6 +129,7 @@ export default function PricingPage({ onClose }) {
   );
 
   // Sync billing period from backend on open — source of truth
+  // This fixes existing users who paid before planBilling was saved to localStorage
   useEffect(() => {
     if (!user || user.plan === "free") return;
     const token = localStorage.getItem("token");
@@ -136,11 +139,12 @@ export default function PricingPage({ onClose }) {
       .then(r => r.ok ? r.json() : null)
       .then(d => {
         if (d?.billing) {
-          setCurrentBilling(d.billing);
+          setCurrentBilling(d.billing);   // mark their actual paid billing
+          setBilling(d.billing);           // also switch the tab to match
           localStorage.setItem("planBilling", d.billing);
         }
       })
-      .catch(() => {}); // silently fallback to localStorage
+      .catch(() => {}); // silently fallback to localStorage value
   }, [user]);
 
   const fmt = (plan) => {
