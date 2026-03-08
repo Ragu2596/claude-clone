@@ -623,6 +623,34 @@ ${langInstr}` : basePrompt;
   }
 });
 
+// ─── Current usage — called on page load so bar shows immediately ─────────────
+router.get('/usage', authenticate, async (req, res) => {
+  try {
+    const userPlan = await getActivePlan(req.user.id);
+    const limits   = RATE_LIMITS[userPlan] || RATE_LIMITS.free;
+    const now      = Date.now();
+
+    const [fiveHourCount, dayCount, weekCount] = await Promise.all([
+      countMsgsInWindow(req.user.id, new Date(now - 5 * 60 * 60 * 1000)),
+      countMsgsInWindow(req.user.id, new Date(now - 24 * 60 * 60 * 1000)),
+      countMsgsInWindow(req.user.id, new Date(now - 7 * 24 * 60 * 60 * 1000)),
+    ]);
+
+    res.json({
+      hourCount:  fiveHourCount,
+      hourLimit:  limits.fiveHour,
+      dayCount,
+      dayLimit:   limits.daily,
+      weekCount,
+      weekLimit:  limits.weekly,
+      plan:       userPlan,
+    });
+  } catch (e) {
+    console.error('Usage fetch error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ─── Flywheel stats ───────────────────────────────────────────
 router.get('/flywheel-stats', authenticate, async (req, res) => {
   res.json(await getFlywheelStats());

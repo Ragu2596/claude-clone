@@ -51,8 +51,19 @@ export function useChat() {
     } catch (e) { console.error("loadProjects:", e); }
   }, []);
 
+  // ── Fetch current usage on page load so bar shows immediately ──
+  const loadUsage = useCallback(async () => {
+    try {
+      const r = await apiFetch("/api/chat/usage");
+      if (r.ok) {
+        const d = await r.json();
+        setUsage(d);
+      }
+    } catch (e) { console.error("loadUsage:", e); }
+  }, []);
+
   useEffect(() => {
-    if (user) { loadProjects(); loadConvs(null); }
+    if (user) { loadProjects(); loadConvs(null); loadUsage(); }
   }, [user]);
 
   const selectConv = useCallback(async (id) => {
