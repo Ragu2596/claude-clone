@@ -5,13 +5,16 @@ const API = import.meta.env.VITE_API_URL;
 
 export function useChat() {
   const { user } = useAuth();
-  const [conversations, setConversations] = useState([]);
-  const [activeId, setActiveId] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [streaming, setStreaming] = useState(false);
-  const [projects, setProjects] = useState([]);
-  const [activeProjectId, setActiveProjectId] = useState(null);
-  const abortRef = useRef(null);
+  const [conversations,    setConversations]    = useState([]);
+  const [activeId,         setActiveId]         = useState(null);
+  const [messages,         setMessages]         = useState([]);
+  const [streaming,        setStreaming]        = useState(false);
+  const [projects,         setProjects]         = useState([]);
+  const [activeProjectId,  setActiveProjectId]  = useState(null);
+  const [usage,            setUsage]            = useState(null);       // ✅ NEW: { count, limit, plan }
+  const [upgradeRequired,  setUpgradeRequired]  = useState(false);     // ✅ NEW: file upload blocked
+
+  const abortRef    = useRef(null);
   const activeIdRef = useRef(null);
 
   function getToken() {
@@ -65,9 +68,9 @@ export function useChat() {
   const createNewConv = useCallback(async (pid) => {
     try {
       const r = await apiFetch("/api/conversations", {
-        method: "POST",
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "New Chat", projectId: pid || null }),
+        body:    JSON.stringify({ title: "New Chat", projectId: pid || null }),
       });
       if (!r.ok) return null;
       const c = await r.json();
@@ -89,6 +92,9 @@ export function useChat() {
   const sendMessage = useCallback(async (text, file, model) => {
     if (!text?.trim()) return;
 
+    // Reset upgrade prompt on each new message
+    setUpgradeRequired(false);
+
     let cid = activeIdRef.current;
     if (!cid) {
       cid = await createNewConv(activeProjectId);
@@ -99,12 +105,12 @@ export function useChat() {
     const asstMsgId = "asst_" + Date.now();
 
     const userMsg = {
-      id: userMsgId,
-      role: "user",
-      content: text,
-      fileUrl: file ? URL.createObjectURL(file) : null,
-      fileName: file?.name || null,
-      fileType: file?.type || null,
+      id:       userMsgId,
+      role:     "user",
+      content:  text,
+      fileUrl:  file ? URL.createObjectURL(file) : null,
+      fileName: file?.name  || null,
+      fileType: file?.type  || null,
     };
 
     setMessages(prev => [...prev, userMsg, { id: asstMsgId, role: "assistant", content: "" }]);
@@ -116,27 +122,40 @@ export function useChat() {
       const fd = new FormData();
       fd.append("conversationId", cid);
       fd.append("message", text);
-      // ✅ FIX: Always send model — "auto" tells backend to use best free model
       fd.append("model", model || "auto");
       if (file) fd.append("file", file);
 
       abortRef.current = new AbortController();
 
       const res = await fetch(API + "/api/chat", {
-        method: "POST",
+        method:  "POST",
         headers: { Authorization: "Bearer " + getToken() },
-        body: fd,
-        signal: abortRef.current.signal,
+        body:    fd,
+        signal:  abortRef.current.signal,
       });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
+
+        // ✅ File upload blocked — show upgrade prompt
+        if (err.upgradeRequired) {
+          setUpgradeRequired(true);
+          // Update usage so bar shows correct plan
+          if (err.plan) setUsage(prev => prev ? { ...prev, plan: err.plan } : null);
+          throw new Error(err.error || "File uploads require Starter plan or above.");
+        }
+
+        // ✅ Daily limit reached — update usage bar
+        if (err.limitReached && err.count !== undefined) {
+          setUsage({ count: err.count, limit: err.limit, plan: err.plan });
+        }
+
         throw new Error(err.error || `Server error ${res.status}`);
       }
 
-      const reader = res.body.getReader();
+      const reader  = res.body.getReader();
       const decoder = new TextDecoder();
-      let buffer = "";
+      let buffer    = "";
 
       while (true) {
         const { done, value } = await reader.read();
@@ -161,11 +180,18 @@ export function useChat() {
               prev.map(m => m.id === asstMsgId ? { ...m, content: snapshot } : m)
             );
           }
+
           if (data.type === "title" && data.title) {
             setConversations(prev =>
               prev.map(c => c.id === cid ? { ...c, title: data.title } : c)
             );
           }
+
+          // ✅ Capture usage from done event
+          if (data.type === "done" && data.usage) {
+            setUsage(data.usage);
+          }
+
           if (data.type === "error") {
             throw new Error(data.error || "Stream error");
           }
@@ -181,7 +207,7 @@ export function useChat() {
       try {
         const r2 = await apiFetch(`/api/conversations/${cid}`);
         if (r2.ok) {
-          const d = await r2.json();
+          const d    = await r2.json();
           const msgs = d.messages || [];
           if (msgs.length > 0 && msgs[msgs.length - 1].role === "assistant") {
             setMessages(msgs);
@@ -221,9 +247,9 @@ export function useChat() {
   const createProject = useCallback(async (name, desc, sysprompt) => {
     try {
       const r = await apiFetch("/api/projects", {
-        method: "POST",
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, description: desc, systemPrompt: sysprompt }),
+        body:    JSON.stringify({ name, description: desc, systemPrompt: sysprompt }),
       });
       if (r.ok) { const p = await r.json(); setProjects(prev => [p, ...prev]); return p; }
     } catch (e) { console.error("createProject:", e); }
@@ -247,9 +273,11 @@ export function useChat() {
   return {
     conversations, activeId, messages, streaming,
     projects, activeProjectId,
+    usage,           // ✅ NEW
+    upgradeRequired, // ✅ NEW
     selectConv,
     setActiveProjectId: handleSetActiveProjectId,
-    newConv: () => createNewConv(activeProjectId),
+    newConv:       () => createNewConv(activeProjectId),
     deleteConv, sendMessage, stopStream,
     createProject, deleteProject,
   };
