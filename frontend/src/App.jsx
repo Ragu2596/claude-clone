@@ -7,7 +7,7 @@ import { useAuth } from "./context/AuthContext";
 import { useChat } from "./hooks/useChat";
 import PricingPage from "./PricingPage";
 
-// ─── Mobile hook ──────────────────────────────────────────────────────────────
+// ─── Mobile hook ──────────────────────────────────────────────
 function useIsMobile() {
   const [v, setV] = useState(() => window.innerWidth < 768);
   useEffect(() => {
@@ -18,31 +18,31 @@ function useIsMobile() {
   return v;
 }
 
-// ─── Icons ───────────────────────────────────────────────────────────────────
+// ─── Icons ────────────────────────────────────────────────────
 const Icon = ({ d, size = 16, stroke = "currentColor", fill = "none", sw = 2 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={stroke} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
     <path d={d} />
   </svg>
 );
-const PlusIcon     = ({size=16}) => <Icon size={size} d="M12 5v14M5 12h14"/>;
-const SendIcon     = ({size=16}) => <Icon size={size} sw={2.5} d="M12 19V5M5 12l7-7 7 7"/>;
-const StopIcon     = ({size=14}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>;
-const TrashIcon    = ({size=13}) => <Icon size={size} d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/>;
-const EditIcon     = ({size=15}) => <Icon size={size} d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>;
-const CopyIcon     = ({size=14}) => <Icon size={size} d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2v-2M8 4a2 2 0 012-2h4a2 2 0 012 2v2H8V4zM16 12h5M16 16h5M16 8h5"/>;
-const FolderIcon   = ({size=14}) => <Icon size={size} d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>;
-const ChatIcon     = ({size=14}) => <Icon size={size} d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>;
-const ClipIcon     = ({size=16}) => <Icon size={size} d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>;
-const ThumbUpIcon  = ({size=14}) => <Icon size={size} d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/>;
-const ThumbDownIcon= ({size=14}) => <Icon size={size} d="M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3H10zM17 2h2.67A2.31 2.31 0 0122 4v7a2.31 2.31 0 01-2.33 2H17"/>;
-const ChevronDown  = ({size=14}) => <Icon size={size} sw={2} d="M6 9l6 6 6-6"/>;
-const RefreshIcon  = ({size=14}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>;
-const CloseIcon    = ({size=13}) => <Icon size={size} sw={2.5} d="M18 6L6 18M6 6l12 12"/>;
-const PreviewIcon  = ({size=14}) => <Icon size={size} d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zM12 9a3 3 0 100 6 3 3 0 000-6z"/>;
-// NEW: hamburger icon for mobile
-const MenuIcon     = ({size=22}) => <Icon size={size} sw={2} d="M3 6h18M3 12h18M3 18h18"/>;
+const PlusIcon      = ({size=16}) => <Icon size={size} d="M12 5v14M5 12h14"/>;
+const SendIcon      = ({size=16}) => <Icon size={size} sw={2.5} d="M12 19V5M5 12l7-7 7 7"/>;
+const StopIcon      = ({size=14}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>;
+const TrashIcon     = ({size=13}) => <Icon size={size} d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/>;
+const EditIcon      = ({size=15}) => <Icon size={size} d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>;
+const CopyIcon      = ({size=14}) => <Icon size={size} d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2v-2M8 4a2 2 0 012-2h4a2 2 0 012 2v2H8V4zM16 12h5M16 16h5M16 8h5"/>;
+const FolderIcon    = ({size=14}) => <Icon size={size} d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>;
+const ChatIcon      = ({size=14}) => <Icon size={size} d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>;
+const ClipIcon      = ({size=16}) => <Icon size={size} d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>;
+const ThumbUpIcon   = ({size=14}) => <Icon size={size} d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/>;
+const ThumbDownIcon = ({size=14}) => <Icon size={size} d="M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3H10zM17 2h2.67A2.31 2.31 0 0122 4v7a2.31 2.31 0 01-2.33 2H17"/>;
+const ChevronDown   = ({size=14}) => <Icon size={size} sw={2} d="M6 9l6 6 6-6"/>;
+const RefreshIcon   = ({size=14}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>;
+const CloseIcon     = ({size=13}) => <Icon size={size} sw={2.5} d="M18 6L6 18M6 6l12 12"/>;
+const PreviewIcon   = ({size=14}) => <Icon size={size} d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zM12 9a3 3 0 100 6 3 3 0 000-6z"/>;
+const MenuIcon      = ({size=22}) => <Icon size={size} sw={2} d="M3 6h18M3 12h18M3 18h18"/>;
+const PencilIcon    = ({size=13}) => <Icon size={size} d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>;
 
-// ─── Logo ─────────────────────────────────────────────────────────────────────
+// ─── Logo ─────────────────────────────────────────────────────
 const RkLogo = ({ size = 28 }) => (
   <svg width={size} height={size} viewBox="0 0 64 64" fill="none">
     <rect width="64" height="64" rx="16" fill="#0f0f1a"/>
@@ -58,7 +58,7 @@ const RkLogo = ({ size = 28 }) => (
   </svg>
 );
 
-// ─── Google Logo ──────────────────────────────────────────────────────────────
+// ─── Google Logo ──────────────────────────────────────────────
 const GoogleLogo = () => (
   <svg width="18" height="18" viewBox="0 0 18 18">
     <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
@@ -68,7 +68,7 @@ const GoogleLogo = () => (
   </svg>
 );
 
-// ─── CSS Variables (injected once) ───────────────────────────────────────────
+// ─── CSS ──────────────────────────────────────────────────────
 const CSS = `
   :root {
     --cream: #f5f0e8; --sidebar: #ede8e0; --border: #ddd7ce;
@@ -82,20 +82,19 @@ const CSS = `
   ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 99px; }
-  @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-  @keyframes dot { 0%,80%,100% { transform: scale(0.6); opacity:.4; } 40% { transform: scale(1); opacity:1; } }
-  @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0; } }
-  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes fadeUp  { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes dot     { 0%,80%,100% { transform:scale(0.6); opacity:.4; } 40% { transform:scale(1); opacity:1; } }
+  @keyframes blink   { 0%,100% { opacity:1; } 50% { opacity:0; } }
+  @keyframes spin    { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+  .msg-actions { opacity: 0; transition: opacity .15s; }
+  .msg-wrap:hover .msg-actions { opacity: 1; }
+  .user-actions { opacity: 0; transition: opacity .15s; }
+  .user-wrap:hover .user-actions { opacity: 1; }
 `;
-
 if (!document.getElementById("rk-css")) {
-  const s = document.createElement("style");
-  s.id = "rk-css";
-  s.textContent = CSS;
-  document.head.appendChild(s);
+  const s = document.createElement("style"); s.id = "rk-css"; s.textContent = CSS; document.head.appendChild(s);
 }
 
-// ─── Shared styles ────────────────────────────────────────────────────────────
 const inputStyle = {
   width: "100%", padding: "9px 12px", borderRadius: 8,
   border: "1px solid var(--border)", background: "#fafafa",
@@ -103,7 +102,20 @@ const inputStyle = {
   transition: "border-color .15s, box-shadow .15s",
 };
 
-// ─── AuthPage ─────────────────────────────────────────────────────────────────
+// ─── Format timestamp ─────────────────────────────────────────
+function formatTime(ts) {
+  if (!ts) return "";
+  const d = new Date(ts);
+  const now = new Date();
+  const diff = (now - d) / 1000;
+  if (diff < 60)  return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (d.toDateString() === now.toDateString())
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
+// ─── AuthPage ─────────────────────────────────────────────────
 function AuthPage() {
   const { login, register, googleLogin, oauthError, setOauthError } = useAuth();
   const [mode, setMode]     = useState("login");
@@ -152,9 +164,7 @@ function AuthPage() {
             <Field label="Password" type="password" value={form.password} onChange={set("password")} placeholder="••••••••" onKeyDown={e => e.key === "Enter" && submit()} />
           </div>
           {error && (
-            <div style={{ fontSize: 13, color: "#dc2626", marginBottom: 14, padding: "10px 12px", background: "#fef2f2", borderRadius: 8, border: "1px solid #fecaca" }}>
-              {error}
-            </div>
+            <div style={{ fontSize: 13, color: "#dc2626", marginBottom: 14, padding: "10px 12px", background: "#fef2f2", borderRadius: 8, border: "1px solid #fecaca" }}>{error}</div>
           )}
           <button onClick={submit} disabled={loading} style={{ width: "100%", padding: "12px", background: "var(--orange)", border: "none", borderRadius: 10, color: "#fff", fontSize: 14, fontWeight: 600, cursor: loading ? "default" : "pointer", opacity: loading ? 0.75 : 1, transition: "background .15s" }}
             onMouseEnter={e => { if (!loading) e.currentTarget.style.background = "var(--orange2)"; }}
@@ -188,8 +198,7 @@ function Field({ label, type = "text", value, onChange, placeholder, onKeyDown }
   );
 }
 
-// ─── Sidebar ──────────────────────────────────────────────────────────────────
-// CHANGED: added isMobile + onClose props
+// ─── Sidebar ──────────────────────────────────────────────────
 function Sidebar({ conversations, projects, activeId, activeProjectId, selectConv, newConv, deleteConv, setActiveProjectId, createProject, deleteProject, onUpgrade, isMobile, onClose }) {
   const { user, logout } = useAuth();
   const [showMenu, setShowMenu]       = useState(false);
@@ -212,7 +221,6 @@ function Sidebar({ conversations, projects, activeId, activeProjectId, selectCon
     setPForm({ name: "", prompt: "You are a helpful AI assistant." });
   };
 
-  // Auto-close sidebar on mobile after choosing a chat
   const go = fn => { fn(); if (isMobile && onClose) onClose(); };
 
   const menuItems = [
@@ -228,8 +236,6 @@ function Sidebar({ conversations, projects, activeId, activeProjectId, selectCon
 
   return (
     <div style={{ width: 260, height: "100%", background: "var(--sidebar)", display: "flex", flexDirection: "column", borderRight: "1px solid var(--border)" }}>
-
-      {/* Top */}
       <div style={{ padding: "14px 12px 8px", flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "2px 4px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
@@ -238,17 +244,12 @@ function Sidebar({ conversations, projects, activeId, activeProjectId, selectCon
           </div>
           <div style={{ display: "flex", gap: 4 }}>
             <SideBtn onClick={() => go(newConv)} title="New chat"><EditIcon size={16} /></SideBtn>
-            {/* X button — only on mobile */}
-            {isMobile && (
-              <SideBtn onClick={onClose} title="Close"><CloseIcon size={16} /></SideBtn>
-            )}
+            {isMobile && <SideBtn onClick={onClose} title="Close"><CloseIcon size={16} /></SideBtn>}
           </div>
         </div>
       </div>
 
-      {/* Scrollable list */}
       <div style={{ flex: 1, overflowY: "auto", padding: "2px 8px" }}>
-
         <SectionHeader label="Projects" action={() => setShowNewProj(!showNewProj)} />
         {showNewProj && (
           <div style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: 10, padding: 10, marginBottom: 6 }}>
@@ -284,7 +285,6 @@ function Sidebar({ conversations, projects, activeId, activeProjectId, selectCon
         ))}
       </div>
 
-      {/* User */}
       <div ref={menuRef} style={{ flexShrink: 0, borderTop: "1px solid var(--border)", padding: "8px 10px", position: "relative" }}>
         {showMenu && (
           <div style={{ position: "absolute", bottom: 72, left: 8, right: 8, background: "#fff", border: "1px solid #e5e5e5", borderRadius: 16, overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.14)", zIndex: 200 }}>
@@ -374,24 +374,74 @@ function Avatar({ user, size = 30 }) {
   );
 }
 
-// ─── Message ──────────────────────────────────────────────────────────────────
-function CopyBtn({ text }) {
-  const [copied, setCopied] = useState(false);
+// ─── UsageBar ─────────────────────────────────────────────────
+function UsageBar({ usage, onUpgrade }) {
+  if (!usage) return null;
+  const { count, limit, plan } = usage;
+  const pct = Math.min((count / limit) * 100, 100);
+  const isWarn = pct >= 80;
+  const isFull = pct >= 100;
+  const barColor = isFull ? "#dc2626" : isWarn ? "#f59e0b" : "var(--orange)";
   return (
-    <button onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-      style={{ background: "rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.1)", borderRadius: 5, padding: "3px 9px", fontSize: 11, color: "var(--text2)", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
-      onMouseEnter={e => e.currentTarget.style.background = "rgba(0,0,0,0.1)"}
-      onMouseLeave={e => e.currentTarget.style.background = "rgba(0,0,0,0.05)"}>
-      <CopyIcon size={11} />{copied ? "Copied!" : "Copy"}
+    <div style={{ padding: "4px 16px 10px", maxWidth: 780, margin: "0 auto", width: "100%" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+        <span style={{ fontSize: 11, color: "var(--text3)" }}>
+          <span style={{ fontWeight: 600, color: barColor }}>{count}</span> / {limit === 9999 ? "∞" : limit} messages today
+          <span style={{ marginLeft: 6, background: barColor + "22", color: barColor, borderRadius: 99, padding: "1px 6px", fontSize: 10, fontWeight: 700, textTransform: "uppercase" }}>{plan}</span>
+        </span>
+        {isWarn && plan === "free" && (
+          <button onClick={onUpgrade} style={{ fontSize: 11, fontWeight: 700, color: "var(--orange)", background: "none", border: "1px solid var(--orange)", borderRadius: 6, padding: "2px 8px", cursor: "pointer" }}>
+            Upgrade ↑
+          </button>
+        )}
+      </div>
+      <div style={{ height: 3, background: "var(--border)", borderRadius: 99, overflow: "hidden" }}>
+        <div style={{ width: pct + "%", height: "100%", background: barColor, borderRadius: 99, transition: "width .4s ease" }} />
+      </div>
+    </div>
+  );
+}
+
+// ─── Action Button ─────────────────────────────────────────────
+function ActionBtn({ onClick, title, children, danger }) {
+  return (
+    <button onClick={onClick} title={title}
+      style={{ background: "none", border: "1px solid transparent", borderRadius: 6, padding: "4px 7px", fontSize: 12, color: "var(--text3)", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
+      onMouseEnter={e => { e.currentTarget.style.background = danger ? "#fef2f2" : "var(--hover)"; e.currentTarget.style.borderColor = danger ? "#fecaca" : "var(--border)"; e.currentTarget.style.color = danger ? "#dc2626" : "var(--text2)"; }}
+      onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.borderColor = "transparent"; e.currentTarget.style.color = "var(--text3)"; }}>
+      {children}
     </button>
   );
 }
 
-function Message({ msg, isLast, streaming, onArtifact }) {
-  const isUser = msg.role === "user";
+// ─── CopyBtn ──────────────────────────────────────────────────
+function CopyBtn({ text, iconOnly = false }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); };
+  if (iconOnly) return (
+    <ActionBtn onClick={copy} title={copied ? "Copied!" : "Copy"}>
+      <CopyIcon size={13} />{copied ? "Copied!" : "Copy"}
+    </ActionBtn>
+  );
+  return (
+    <button onClick={copy}
+      style={{ background: "rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.1)", borderRadius: 5, padding: "3px 9px", fontSize: 11, color: "var(--text2)", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
+      onMouseEnter={e => e.currentTarget.style.background = "rgba(0,0,0,0.1)"}
+      onMouseLeave={e => e.currentTarget.style.background = "rgba(0,0,0,0.05)"}>
+      <CopyIcon size={11}/>{copied ? "Copied!" : "Copy"}
+    </button>
+  );
+}
 
+// ─── Message ──────────────────────────────────────────────────
+function Message({ msg, isLast, streaming, onArtifact, onRetry, onEdit }) {
+  const isUser = msg.role === "user";
+  const [editing,  setEditing]  = useState(false);
+  const [editText, setEditText] = useState(msg.content);
+
+  // ── User message ──────────────────────────────────────────────
   if (isUser) return (
-    <div style={{ display: "flex", justifyContent: "flex-end", padding: "6px 0", marginBottom: 6, animation: "fadeUp .25s ease forwards" }}>
+    <div className="user-wrap" style={{ display: "flex", justifyContent: "flex-end", padding: "6px 0", marginBottom: 6, animation: "fadeUp .25s ease forwards", position: "relative" }}>
       <div style={{ maxWidth: "85%" }}>
         {msg.fileUrl && (
           <div style={{ marginBottom: 6, display: "flex", justifyContent: "flex-end" }}>
@@ -400,19 +450,50 @@ function Message({ msg, isLast, streaming, onArtifact }) {
               : <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "var(--sidebar)", border: "1px solid var(--border)", borderRadius: 9, padding: "7px 11px", fontSize: 12, color: "var(--text2)" }}>{msg.fileName}</div>}
           </div>
         )}
-        <div style={{ background: "var(--user-bubble)", borderRadius: 18, borderBottomRightRadius: 4, padding: "11px 16px", color: "#fff", fontSize: 15, lineHeight: 1.65 }}>
-          {msg.content}
+        {editing ? (
+          <div style={{ background: "#fff", border: "1px solid var(--orange)", borderRadius: 14, padding: 10, minWidth: 240 }}>
+            <textarea value={editText} onChange={e => setEditText(e.target.value)} rows={3}
+              autoFocus
+              style={{ width: "100%", background: "none", border: "none", outline: "none", fontSize: 14, color: "var(--text)", resize: "none", fontFamily: "inherit", lineHeight: 1.6 }} />
+            <div style={{ display: "flex", gap: 6, justifyContent: "flex-end", marginTop: 6 }}>
+              <button onClick={() => { setEditing(false); setEditText(msg.content); }} style={{ padding: "5px 12px", background: "none", border: "1px solid var(--border)", borderRadius: 7, fontSize: 12, cursor: "pointer", color: "var(--text2)" }}>Cancel</button>
+              <button onClick={() => { setEditing(false); if (editText.trim() && editText !== msg.content) onEdit?.(editText.trim()); }}
+                style={{ padding: "5px 12px", background: "var(--orange)", border: "none", borderRadius: 7, fontSize: 12, fontWeight: 600, color: "#fff", cursor: "pointer" }}>Send</button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ background: "var(--user-bubble)", borderRadius: 18, borderBottomRightRadius: 4, padding: "11px 16px", color: "#fff", fontSize: 15, lineHeight: 1.65 }}>
+            {msg.content}
+          </div>
+        )}
+        {/* Timestamp + Edit button */}
+        <div className="user-actions" style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, marginTop: 4 }}>
+          {!editing && onEdit && (
+            <button onClick={() => setEditing(true)} title="Edit message"
+              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text3)", display: "flex", alignItems: "center", gap: 3, fontSize: 11, padding: "2px 4px", borderRadius: 5 }}
+              onMouseEnter={e => { e.currentTarget.style.color = "var(--text2)"; e.currentTarget.style.background = "var(--hover)"; }}
+              onMouseLeave={e => { e.currentTarget.style.color = "var(--text3)"; e.currentTarget.style.background = "none"; }}>
+              <PencilIcon size={12} /> Edit
+            </button>
+          )}
+          {msg.createdAt && <span style={{ fontSize: 10.5, color: "var(--text3)" }}>{formatTime(msg.createdAt)}</span>}
         </div>
       </div>
     </div>
   );
 
+  // ── Assistant message ─────────────────────────────────────────
   const isEmpty = !msg.content && streaming && isLast;
 
   return (
-    <div style={{ display: "flex", gap: 14, padding: "10px 0", animation: "fadeUp .25s ease forwards" }}>
+    <div className="msg-wrap" style={{ display: "flex", gap: 14, padding: "10px 0", animation: "fadeUp .25s ease forwards" }}>
       <div style={{ flexShrink: 0, marginTop: 3 }}><RkLogo size={26} /></div>
       <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Model label */}
+        <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text3)", marginBottom: 4, letterSpacing: "0.02em" }}>
+          rk.ai
+        </div>
+
         {isEmpty ? (
           <div style={{ display: "flex", gap: 5, alignItems: "center", height: 28, paddingTop: 6 }}>
             {[0, 0.18, 0.36].map((d, i) => (
@@ -465,23 +546,30 @@ function Message({ msg, isLast, streaming, onArtifact }) {
                 {msg.content}
               </ReactMarkdown>
             </div>
+
+            {/* Streaming cursor */}
             {isLast && streaming && msg.content && (
               <span style={{ display: "inline-block", width: 2, height: 17, background: "var(--text)", marginLeft: 1, animation: "blink 1s ease infinite", verticalAlign: "middle" }} />
             )}
+
+            {/* Action bar — shown on hover via CSS + timestamp */}
             {!streaming && msg.content && !msg.error && (
-              <div style={{ display: "flex", gap: 2, marginTop: 10 }}>
-                {[
-                  { label: "Copy",          icon: <CopyIcon />,      action: () => navigator.clipboard.writeText(msg.content) },
-                  { label: "Good response", icon: <ThumbUpIcon />,   action: () => {} },
-                  { label: "Bad response",  icon: <ThumbDownIcon />, action: () => {} },
-                ].map(b => (
-                  <button key={b.label} onClick={b.action} title={b.label}
-                    style={{ background: "none", border: "1px solid transparent", borderRadius: 6, padding: "4px 7px", fontSize: 12, color: "var(--text3)", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
-                    onMouseEnter={e => { e.currentTarget.style.background = "var(--hover)"; e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text2)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.borderColor = "transparent"; e.currentTarget.style.color = "var(--text3)"; }}>
-                    {b.icon}
-                  </button>
-                ))}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8 }}>
+                {/* Left: action buttons */}
+                <div className="msg-actions" style={{ display: "flex", gap: 2 }}>
+                  <CopyBtn text={msg.content} iconOnly />
+                  {onRetry && (
+                    <ActionBtn onClick={onRetry} title="Retry">
+                      <RefreshIcon size={13} /> Retry
+                    </ActionBtn>
+                  )}
+                  <ActionBtn onClick={() => {}} title="Good response"><ThumbUpIcon size={13} /></ActionBtn>
+                  <ActionBtn onClick={() => {}} title="Bad response"><ThumbDownIcon size={13} /></ActionBtn>
+                </div>
+                {/* Right: timestamp */}
+                {msg.createdAt && (
+                  <span style={{ fontSize: 10.5, color: "var(--text3)", flexShrink: 0 }}>{formatTime(msg.createdAt)}</span>
+                )}
               </div>
             )}
           </>
@@ -491,42 +579,29 @@ function Message({ msg, isLast, streaming, onArtifact }) {
   );
 }
 
-// ─── Model Selector ───────────────────────────────────────────────────────────
+// ─── Model Selector ───────────────────────────────────────────
 const MODELS = [
-  // AUTO
-  { id: "auto",                        label: "Auto",               sub: "Best free model",        badge: "AUTO", color: "#6b7280", group: "auto"        },
-  // GROQ — Free
-  { id: "llama-3.3-70b-versatile",     label: "Llama 3.3 70B",     sub: "Free · Fast",            badge: "FREE", color: "#16a34a", group: "groq"        },
-  { id: "mixtral-8x7b-32768",          label: "Mixtral 8x7B",      sub: "Free · Efficient",       badge: "FREE", color: "#16a34a", group: "groq"        },
-  // GEMINI — Free
-  { id: "gemini-2.0-flash",            label: "Gemini 2.0 Flash",  sub: "Free · Google",          badge: "FREE", color: "#4285f4", group: "gemini"      },
-  { id: "gemini-1.5-flash",            label: "Gemini 1.5 Flash",  sub: "Free · Google",          badge: "FREE", color: "#4285f4", group: "gemini"      },
-  { id: "gemini-1.5-pro",              label: "Gemini 1.5 Pro",    sub: "Free · Google",          badge: "FREE", color: "#4285f4", group: "gemini"      },
-  // MISTRAL — Free
-  { id: "mistral-small",               label: "Mistral Small",     sub: "Free · Fast · Europe",   badge: "FREE", color: "#f97316", group: "mistral"     },
-  { id: "mistral-large",               label: "Mistral Large",     sub: "Free · Smart · Europe",  badge: "FREE", color: "#f97316", group: "mistral"     },
-  // TOGETHER — Free credits
-  { id: "together-llama",              label: "Llama 4 Maverick",  sub: "Free · Together AI",     badge: "FREE", color: "#8b5cf6", group: "together"    },
-  { id: "together-deepseek",           label: "DeepSeek V3",       sub: "Free · Together AI",     badge: "FREE", color: "#8b5cf6", group: "together"    },
-  { id: "together-qwen",               label: "Qwen 2.5 72B",      sub: "Free · Together AI",     badge: "FREE", color: "#8b5cf6", group: "together"    },
-  // PERPLEXITY — Web Search
-  { id: "perplexity-online",           label: "Perplexity Online", sub: "Live web search",        badge: "WEB",  color: "#06b6d4", group: "perplexity"  },
-  // OPENAI — Paid
-  { id: "gpt-4o-mini",                 label: "GPT-4o Mini",       sub: "Fast · OpenAI",          badge: "GPT",  color: "#10a37f", group: "openai"      },
-  { id: "gpt-4o",                      label: "GPT-4o",            sub: "Smart · OpenAI",         badge: "GPT",  color: "#10a37f", group: "openai"      },
-  // ANTHROPIC — Paid
-  { id: "claude-haiku-4-5-20251001",   label: "Claude Haiku",      sub: "Fast · Anthropic",       badge: "PRO",  color: "#f59e0b", group: "anthropic"   },
-  { id: "claude-sonnet-4-20250514",    label: "Claude Sonnet 4",   sub: "Best · Anthropic",       badge: "TOP",  color: "#8b5cf6", group: "anthropic"   },
+  { id: "auto",                      label: "Auto",               sub: "Best free model",        badge: "AUTO", color: "#6b7280", group: "auto"       },
+  { id: "llama-3.3-70b-versatile",   label: "Llama 3.3 70B",     sub: "Free · Fast",            badge: "FREE", color: "#16a34a", group: "groq"       },
+  { id: "mixtral-8x7b-32768",        label: "Mixtral 8x7B",      sub: "Free · Efficient",       badge: "FREE", color: "#16a34a", group: "groq"       },
+  { id: "gemini-2.0-flash",          label: "Gemini 2.0 Flash",  sub: "Free · Google",          badge: "FREE", color: "#4285f4", group: "gemini"     },
+  { id: "gemini-1.5-flash",          label: "Gemini 1.5 Flash",  sub: "Free · Google",          badge: "FREE", color: "#4285f4", group: "gemini"     },
+  { id: "gemini-1.5-pro",            label: "Gemini 1.5 Pro",    sub: "Free · Google",          badge: "FREE", color: "#4285f4", group: "gemini"     },
+  { id: "mistral-small",             label: "Mistral Small",     sub: "Free · Fast · Europe",   badge: "FREE", color: "#f97316", group: "mistral"    },
+  { id: "mistral-large",             label: "Mistral Large",     sub: "Free · Smart · Europe",  badge: "FREE", color: "#f97316", group: "mistral"    },
+  { id: "together-llama",            label: "Llama 4 Maverick",  sub: "Free · Together AI",     badge: "FREE", color: "#8b5cf6", group: "together"   },
+  { id: "together-deepseek",         label: "DeepSeek V3",       sub: "Free · Together AI",     badge: "FREE", color: "#8b5cf6", group: "together"   },
+  { id: "together-qwen",             label: "Qwen 2.5 72B",      sub: "Free · Together AI",     badge: "FREE", color: "#8b5cf6", group: "together"   },
+  { id: "perplexity-online",         label: "Perplexity Online", sub: "Live web search",        badge: "WEB",  color: "#06b6d4", group: "perplexity" },
+  { id: "gpt-4o-mini",               label: "GPT-4o Mini",       sub: "Fast · OpenAI",          badge: "GPT",  color: "#10a37f", group: "openai"     },
+  { id: "gpt-4o",                    label: "GPT-4o",            sub: "Smart · OpenAI",         badge: "GPT",  color: "#10a37f", group: "openai"     },
+  { id: "claude-haiku-4-5-20251001", label: "Claude Haiku",      sub: "Fast · Anthropic",       badge: "PRO",  color: "#f59e0b", group: "anthropic"  },
+  { id: "claude-sonnet-4-20250514",  label: "Claude Sonnet 4",   sub: "Best · Anthropic",       badge: "TOP",  color: "#8b5cf6", group: "anthropic"  },
 ];
 const GROUP_LABELS = {
-  auto:       null,
-  groq:       "🆓 Free · Groq",
-  gemini:     "🆓 Free · Google Gemini",
-  mistral:    "🆓 Free · Mistral AI",
-  together:   "🆓 Free · Together AI",
-  perplexity: "🌐 Web Search · Perplexity",
-  openai:     "💚 ChatGPT · OpenAI",
-  anthropic:  "🟠 Claude · Anthropic",
+  auto: null, groq: "🆓 Free · Groq", gemini: "🆓 Free · Google Gemini",
+  mistral: "🆓 Free · Mistral AI", together: "🆓 Free · Together AI",
+  perplexity: "🌐 Web Search · Perplexity", openai: "💚 ChatGPT · OpenAI", anthropic: "🟠 Claude · Anthropic",
 };
 const GROUP_ORDER = ["auto", "groq", "gemini", "mistral", "together", "perplexity", "openai", "anthropic"];
 
@@ -592,7 +667,7 @@ function ModelSelector({ value, onChange }) {
             );
           })}
           <div style={{ padding: "8px 16px", fontSize: 10, color: "#aaa", borderTop: "1px solid #f0ebe4", background: "#fafaf8", position: "sticky", bottom: 0 }}>
-            🆓 Groq + Gemini are completely free &nbsp;·&nbsp; Others require API keys
+            🆓 Groq + Gemini are completely free
           </div>
         </div>
       )}
@@ -600,11 +675,11 @@ function ModelSelector({ value, onChange }) {
   );
 }
 
-// ─── InputBar ─────────────────────────────────────────────────────────────────
+// ─── InputBar ─────────────────────────────────────────────────
 function InputBar({ onSend, streaming, onStop }) {
-  const [text, setText]               = useState("");
-  const [file, setFile]               = useState(null);
-  const [selectedModel, setSelectedModel] = useState("auto");
+  const [text, setText]             = useState("");
+  const [file, setFile]             = useState(null);
+  const [selectedModel, setModel]   = useState("auto");
   const taRef   = useRef(null);
   const fileRef = useRef(null);
 
@@ -650,7 +725,7 @@ function InputBar({ onSend, streaming, onStop }) {
             <IBtn onClick={() => fileRef.current?.click()} title="Attach file" active={!!file}><ClipIcon size={16} /></IBtn>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <ModelSelector value={selectedModel} onChange={setSelectedModel} />
+            <ModelSelector value={selectedModel} onChange={setModel} />
             {streaming ? (
               <button onClick={onStop} style={{ width: 32, height: 32, borderRadius: 8, background: "var(--text)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                 onMouseEnter={e => e.currentTarget.style.background = "#333"}
@@ -685,7 +760,7 @@ function IBtn({ children, onClick, title, active }) {
   );
 }
 
-// ─── Welcome Screen ───────────────────────────────────────────────────────────
+// ─── Welcome ──────────────────────────────────────────────────
 function Welcome({ onSend, user, isMobile }) {
   const cards = [
     { t: "Help me write",     s: "an email, essay, or creative story" },
@@ -702,7 +777,6 @@ function Welcome({ onSend, user, isMobile }) {
       <p style={{ fontSize: 15, color: "var(--text2)", marginBottom: 40, textAlign: "center", maxWidth: 420, lineHeight: 1.65 }}>
         I can help with writing, analysis, coding, math, research, and much more.
       </p>
-      {/* CHANGED: single column on mobile */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10, maxWidth: 540, width: "100%" }}>
         {cards.map(c => (
           <button key={c.t} onClick={() => onSend(c.t)}
@@ -718,24 +792,12 @@ function Welcome({ onSend, user, isMobile }) {
   );
 }
 
-// ─── Artifact Panel ───────────────────────────────────────────────────────────
-// CHANGED: fullscreen on mobile
+// ─── Artifact Panel ───────────────────────────────────────────
 function ArtifactPanel({ code, lang, onClose, isMobile }) {
   const [view, setView] = useState("preview");
   const [key,  setKey]  = useState(0);
   return (
-    <div style={{
-      width: isMobile ? "100%" : 480,
-      height: "100%",
-      position: isMobile ? "fixed" : "relative",
-      top: isMobile ? 0 : "auto",
-      left: isMobile ? 0 : "auto",
-      zIndex: isMobile ? 300 : "auto",
-      borderLeft: "1px solid var(--border)",
-      background: "#fff",
-      display: "flex",
-      flexDirection: "column",
-    }}>
+    <div style={{ width: isMobile ? "100%" : 480, height: "100%", position: isMobile ? "fixed" : "relative", top: isMobile ? 0 : "auto", left: isMobile ? 0 : "auto", zIndex: isMobile ? 300 : "auto", borderLeft: "1px solid var(--border)", background: "#fff", display: "flex", flexDirection: "column" }}>
       <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
         <div style={{ display: "flex", gap: 6 }}>
           {["preview", "code"].map(v => (
@@ -769,7 +831,7 @@ function ArtBtn({ children, onClick, title }) {
   );
 }
 
-// ─── Loading Screen ───────────────────────────────────────────────────────────
+// ─── Loading ──────────────────────────────────────────────────
 function LoadingScreen() {
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "var(--cream)", gap: 20 }}>
@@ -783,17 +845,17 @@ function LoadingScreen() {
   );
 }
 
-// ─── App ──────────────────────────────────────────────────────────────────────
+// ─── App ──────────────────────────────────────────────────────
 export default function App() {
   const { user, loading } = useAuth();
-  const [showPricing, setShowPricing] = useState(false);
-  // NEW: mobile sidebar state
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showPricing,  setShowPricing]  = useState(false);
+  const [sidebarOpen,  setSidebarOpen]  = useState(false);
   const isMobile = useIsMobile();
 
   const {
     conversations, activeId, messages, streaming,
     projects, activeProjectId,
+    usage, upgradeRequired,
     selectConv, setActiveProjectId, newConv, deleteConv,
     sendMessage, stopStream, createProject, deleteProject,
   } = useChat();
@@ -802,7 +864,6 @@ export default function App() {
   const bottomRef = useRef(null);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
-  // Close sidebar when resizing back to desktop
   useEffect(() => { if (!isMobile) setSidebarOpen(false); }, [isMobile]);
 
   if (loading) return <LoadingScreen />;
@@ -810,43 +871,46 @@ export default function App() {
 
   const activeConv = conversations.find(c => c.id === activeId);
 
+  // ── Retry: resend the last user message ───────────────────────
+  const handleRetry = () => {
+    const userMsgs = messages.filter(m => m.role === "user");
+    if (userMsgs.length === 0) return;
+    const lastUser = userMsgs[userMsgs.length - 1];
+    sendMessage(lastUser.content, null, "auto");
+  };
+
+  // ── Edit: resend with new text ─────────────────────────────────
+  const handleEdit = (newText) => {
+    sendMessage(newText, null, "auto");
+  };
+
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--cream)", position: "relative" }}>
 
-      {/* ── Dark overlay when sidebar open on mobile ── */}
+      {/* Mobile overlay */}
       {isMobile && sidebarOpen && (
         <div onClick={() => setSidebarOpen(false)}
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 199 }} />
       )}
 
-      {/* ── Sidebar — slides in from left on mobile ── */}
-      <div style={{
-        position:   isMobile ? "fixed"    : "relative",
-        left:       isMobile ? (sidebarOpen ? 0 : -270) : 0,
-        top: 0, bottom: 0,
-        zIndex:     isMobile ? 200 : "auto",
-        transition: "left .25s cubic-bezier(.4,0,.2,1)",
-        height:     "100%",
-        flexShrink: 0,
-      }}>
+      {/* Sidebar */}
+      <div style={{ position: isMobile ? "fixed" : "relative", left: isMobile ? (sidebarOpen ? 0 : -270) : 0, top: 0, bottom: 0, zIndex: isMobile ? 200 : "auto", transition: "left .25s cubic-bezier(.4,0,.2,1)", height: "100%", flexShrink: 0 }}>
         <Sidebar
           conversations={conversations} projects={projects}
           activeId={activeId} activeProjectId={activeProjectId}
           selectConv={selectConv} newConv={newConv} deleteConv={deleteConv}
           setActiveProjectId={setActiveProjectId} createProject={createProject} deleteProject={deleteProject}
           onUpgrade={() => setShowPricing(true)}
-          isMobile={isMobile}
-          onClose={() => setSidebarOpen(false)}
+          isMobile={isMobile} onClose={() => setSidebarOpen(false)}
         />
       </div>
 
-      {/* ── Main ── */}
+      {/* Main */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
 
         {/* Topbar */}
         <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0, background: "var(--cream)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-            {/* ── Hamburger button — only on mobile ── */}
             {isMobile && (
               <button onClick={() => setSidebarOpen(true)}
                 style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text2)", display: "flex", padding: 6, borderRadius: 8, flexShrink: 0 }}
@@ -864,7 +928,6 @@ export default function App() {
               </p>
             </div>
           </div>
-          {/* Avatar — hide name on mobile */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 10px", background: "#fff", border: "1px solid var(--border)", borderRadius: 8, flexShrink: 0 }}>
             <Avatar user={user} size={22} />
             {!isMobile && <span style={{ fontSize: 12.5, fontWeight: 500, color: "var(--text)" }}>{user.name}</span>}
@@ -877,14 +940,40 @@ export default function App() {
             ? <Welcome onSend={sendMessage} user={user} isMobile={isMobile} />
             : (
               <div style={{ maxWidth: 740, margin: "0 auto", padding: isMobile ? "8px 12px 16px" : "8px 24px 16px" }}>
-                {messages.map((m, i) => (
-                  <Message key={m.id} msg={m} isLast={i === messages.length - 1} streaming={streaming}
-                    onArtifact={(code, lang) => setArtifact({ code, lang })} />
-                ))}
+                {messages.map((m, i) => {
+                  const isLastMsg = i === messages.length - 1;
+                  const isAsst    = m.role === "assistant";
+                  return (
+                    <Message
+                      key={m.id}
+                      msg={m}
+                      isLast={isLastMsg}
+                      streaming={streaming}
+                      onArtifact={(code, lang) => setArtifact({ code, lang })}
+                      onRetry={isAsst && !streaming ? handleRetry : undefined}
+                      onEdit={m.role === "user" && !streaming ? handleEdit : undefined}
+                    />
+                  );
+                })}
                 <div ref={bottomRef} />
               </div>
             )}
         </div>
+
+        {/* Usage Bar */}
+        <UsageBar usage={usage} onUpgrade={() => setShowPricing(true)} />
+
+        {/* File upgrade warning */}
+        {upgradeRequired && (
+          <div style={{ maxWidth: 780, width: "100%", margin: "0 auto", padding: "0 16px 8px" }}>
+            <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: "8px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+              <span style={{ fontSize: 13, color: "#92400e" }}>📎 File uploads require <strong>Starter</strong> plan or above.</span>
+              <button onClick={() => setShowPricing(true)} style={{ fontSize: 12, fontWeight: 700, color: "#fff", background: "#f59e0b", border: "none", borderRadius: 6, padding: "4px 10px", cursor: "pointer", flexShrink: 0 }}>
+                Upgrade
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Input */}
         <div style={{ maxWidth: 780, width: "100%", margin: "0 auto", alignSelf: "stretch" }}>
@@ -894,7 +983,9 @@ export default function App() {
 
       {/* Artifact panel */}
       {artifact && <ArtifactPanel code={artifact.code} lang={artifact.lang} onClose={() => setArtifact(null)} isMobile={isMobile} />}
-      {showPricing && <PricingPage onClose={() => setShowPricing(false)} user={user} />}
+
+      {/* Pricing modal */}
+      {showPricing && <PricingPage onClose={() => setShowPricing(false)} />}
     </div>
   );
 }
