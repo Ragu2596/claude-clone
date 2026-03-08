@@ -1070,10 +1070,16 @@ function useModels() {
 
   return { models, trials };
 }
+// Provider logo SVGs as data URIs — shown in group headers
 const GROUP_LABELS = {
-  auto: null, groq: "🆓 Free · Groq", gemini: "🆓 Free · Google Gemini",
-  mistral: "🆓 Free · Mistral AI", together: "🆓 Free · Together AI",
-  perplexity: "🌐 Web Search", openai: "💚 Speed Models", anthropic: "🟠 Power Models",
+  auto:       null,
+  groq:       { text: "⚡ Groq",        sub: "Free · Lightning fast",    color: "#16a34a", logo: "⚡" },
+  gemini:     { text: "🔵 Google",       sub: "Free · Gemini models",     color: "#4285f4", logo: "🔵" },
+  mistral:    { text: "🟠 Mistral AI",   sub: "Free · European AI",       color: "#f97316", logo: "🟠" },
+  together:   { text: "🟣 Together AI",  sub: "Free · Open source",       color: "#8b5cf6", logo: "🟣" },
+  perplexity: { text: "🌐 Perplexity",   sub: "Web search · Real-time",   color: "#06b6d4", logo: "🌐" },
+  openai:     { text: "🤖 OpenAI",       sub: "GPT models · Paid",        color: "#10a37f", logo: "🤖" },
+  anthropic:  { text: "🧡 Anthropic",    sub: "Claude models · Paid",     color: "#c96442", logo: "🧡" },
 };
 const GROUP_ORDER = ["auto", "groq", "gemini", "mistral", "together", "perplexity", "openai", "anthropic"];
 
@@ -1123,7 +1129,16 @@ function ModelSelector({ value, onChange }) {
             const items = grouped[group]; if (!items) return null;
             return (
               <div key={group}>
-                {GROUP_LABELS[group] && <div style={{ padding: "8px 16px 3px", fontSize: 10, fontWeight: 700, color: "#999", textTransform: "uppercase", letterSpacing: 0.8, background: "#f9f7f5" }}>{GROUP_LABELS[group]}</div>}
+                {GROUP_LABELS[group] && (
+                  <div style={{ padding: "8px 16px 5px", background: "#f9f7f5", borderTop: "1px solid #f0ebe4", borderBottom: "1px solid #f0ebe4" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: GROUP_LABELS[group].color, textTransform: "uppercase", letterSpacing: 0.8 }}>
+                        {GROUP_LABELS[group].text}
+                      </span>
+                      <span style={{ fontSize: 9, color: "#bbb", fontWeight: 500 }}>{GROUP_LABELS[group].sub}</span>
+                    </div>
+                  </div>
+                )}
                 {items.map(m => {
                   const planColors  = { starter: "#3b82f6", pro: "#8b5cf6", max: "#f59e0b" };
                   const planLabels  = { starter: "Starter+", pro: "Pro+", max: "Max" };
