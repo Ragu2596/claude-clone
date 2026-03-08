@@ -6,6 +6,7 @@ import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useAuth } from "./context/AuthContext";
 import { useChat } from "./hooks/useChat";
 import PricingPage from "./PricingPage";
+import AdminDashboard from "./AdminDashboard";
 
 // ─── Mobile hook ──────────────────────────────────────────────
 function useIsMobile() {
@@ -1387,6 +1388,9 @@ function LoadingScreen() {
 
 // ─── App ──────────────────────────────────────────────────────
 export default function App() {
+  // ── Admin route ───────────────────────────────────────────────
+  if (window.location.pathname === '/admin') return <AdminDashboard />;
+
   const { user, loading } = useAuth();
   const [showPricing,  setShowPricing]  = useState(false);
   const [sidebarOpen,  setSidebarOpen]  = useState(false);
