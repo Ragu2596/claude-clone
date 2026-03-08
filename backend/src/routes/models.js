@@ -61,4 +61,27 @@ router.patch('/:id', authenticate, async (req, res) => {
   }
 });
 
+// ── GET /api/models/trials — get trial status for all paid models
+router.get('/trials', authenticate, async (req, res) => {
+  try {
+    const { PrismaClient } = await import('@prisma/client');
+    const p = new PrismaClient();
+    const trials = await p.modelTrial.findMany({
+      where: { userId: req.user.id },
+    });
+    // Return map: { modelId: { used, remaining, exhausted } }
+    const map = {};
+    for (const t of trials) {
+      map[t.modelId] = {
+        used:      t.useCount,
+        remaining: Math.max(0, 3 - t.useCount),
+        exhausted: t.exhausted,
+      };
+    }
+    res.json(map);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 export default router;

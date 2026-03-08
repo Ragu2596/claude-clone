@@ -116,6 +116,36 @@ function planAllowsModel(model, userPlan) {
   return false;
 }
 
+// ─── Free trial: 3 msgs per paid model for free users ────────
+const TRIAL_LIMIT = 3;
+
+async function getTrialStatus(userId, modelId) {
+  const trial = await prisma.modelTrial.findUnique({
+    where: { userId_modelId: { userId, modelId } },
+  });
+  const used = trial?.useCount || 0;
+  const remaining = Math.max(0, TRIAL_LIMIT - used);
+  return { used, remaining, exhausted: used >= TRIAL_LIMIT };
+}
+
+async function incrementTrial(userId, modelId) {
+  await prisma.modelTrial.upsert({
+    where:  { userId_modelId: { userId, modelId } },
+    update: { useCount: { increment: 1 }, exhausted: true },
+    create: { userId, modelId, useCount: 1, exhausted: false },
+  });
+  // Mark exhausted if reached limit
+  const trial = await prisma.modelTrial.findUnique({
+    where: { userId_modelId: { userId, modelId } },
+  });
+  if (trial && trial.useCount >= TRIAL_LIMIT) {
+    await prisma.modelTrial.update({
+      where: { userId_modelId: { userId, modelId } },
+      data:  { exhausted: true },
+    });
+  }
+}
+
 // ─── Rolling window message count helper ─────────────────────
 async function countMsgsInWindow(userId, sinceDate) {
   return prisma.message.count({
@@ -349,6 +379,22 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
 
     const { dayCount, dayLimit, weekCount, weekLimit, hourCount, hourLimit } = rateLimit;
 
+    // Step 3a: Trial check — free users get 3 msgs per paid model
+    let trialInfo = null;
+    if (userPlan === 'free' && chosenModel.requiredPlan) {
+      const trial = await getTrialStatus(req.user.id, chosenModel.id);
+      if (trial.exhausted) {
+        return res.status(403).json({
+          error:         `Trial exhausted for this model. Upgrade to continue using it!`,
+          trialExhausted: true,
+          modelId:       chosenModel.id,
+          plan:          userPlan,
+        });
+      }
+      trialInfo = trial; // will increment after response
+      console.log(`🎁 Trial: user=${req.user.id} model=${chosenModel.id} used=${trial.used}/${TRIAL_LIMIT}`);
+    }
+
     // Step 3b: Check API budget (auto-fallback to free model if exhausted)
     const budget = await checkBudget(req.user.id, userPlan);
     const budgetExhausted = userPlan !== 'free' && !budget.hasbudget;
@@ -448,6 +494,13 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
 
     console.log(`✅ Done — ${chosenModel.provider} len=${fullResponse.length} plan=${userPlan}`);
 
+    // ── Increment trial counter if this was a trial message ─────
+    if (trialInfo !== null) {
+      await incrementTrial(req.user.id, chosenModel.id);
+      const remaining = trialInfo.remaining - 1;
+      console.log(`🎁 Trial used: ${chosenModel.id} — ${remaining} remaining`);
+    }
+
     // ── Track API cost automatically ─────────────────────────────
     const costMicro = await logApiUsage({
       userId:     req.user.id,
@@ -471,7 +524,7 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
       await prisma.conversation.update({ where: { id: conversationId }, data: { updatedAt: new Date() } });
     }
 
-    send(res, { type: 'done', usage: { hourCount: hourCount+1, hourLimit, dayCount: dayCount+1, dayLimit, weekCount: weekCount+1, weekLimit, plan: userPlan, budgetPct: budget.pct, budgetExhausted } });
+    send(res, { type: 'done', usage: { hourCount: hourCount+1, hourLimit, dayCount: dayCount+1, dayLimit, weekCount: weekCount+1, weekLimit, plan: userPlan, budgetPct: budget.pct, budgetExhausted }, trial: trialInfo ? { modelId: chosenModel.id, remaining: trialInfo.remaining - 1 } : null });
     res.end();
 
   } catch (e) {

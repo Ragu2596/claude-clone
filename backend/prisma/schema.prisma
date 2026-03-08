@@ -164,3 +164,17 @@ model ModelConfig {
   @@index([provider])
   @@index([enabled])
 }
+
+// ── Free trial usage per model per user ──────────────────────
+model ModelTrial {
+  id        String   @id @default(uuid())
+  userId    String
+  modelId   String
+  useCount  Int      @default(0)   // how many trial msgs used
+  exhausted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, modelId])
+  @@index([userId])
+}

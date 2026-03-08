@@ -14,6 +14,7 @@ export function useChat() {
   const [usage,            setUsage]            = useState(null);       // ✅ { hourCount, dayCount, weekCount, ...limits, plan }
   const [rateLimit,        setRateLimit]        = useState(null);       // ✅ { window, retryAt, ... } when blocked
   const [upgradeRequired,  setUpgradeRequired]  = useState(false);     // ✅ file upload blocked
+  const [trialExhausted,   setTrialExhausted]   = useState(null);       // ✅ { modelId } when trial used up
 
   const abortRef    = useRef(null);
   const activeIdRef = useRef(null);
@@ -144,6 +145,11 @@ export function useChat() {
           // Update usage so bar shows correct plan
           if (err.plan) setUsage(prev => prev ? { ...prev, plan: err.plan } : null);
           throw new Error(err.error || "File uploads require Starter plan or above.");
+        }
+
+        // ✅ Trial exhausted
+        if (err.trialExhausted) {
+          setTrialExhausted({ modelId: err.modelId });
         }
 
         // ✅ Rate limit hit — store full rate limit info for UI
@@ -297,6 +303,7 @@ export function useChat() {
     usage,           // ✅ { hourCount, dayCount, weekCount, ...limits, plan }
     rateLimit,       // ✅ set when blocked — { window, retryAt, ... }
     upgradeRequired, // ✅ file upload blocked
+    trialExhausted,  // ✅ { modelId } when trial used up
     selectConv,
     setActiveProjectId: handleSetActiveProjectId,
     newConv:       () => createNewConv(activeProjectId),
