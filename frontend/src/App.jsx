@@ -1216,13 +1216,49 @@ function ModelSelector({ value, onChange }) {
   );
 }
 
+// ─── AttachMenu — Claude-style + popup ───────────────────────
+function AttachMenu({ onFile, onScreenshot, webSearch, onToggleWebSearch, onClose }) {
+  const menuRef = useRef(null);
+  useEffect(() => {
+    const handler = e => { if (menuRef.current && !menuRef.current.contains(e.target)) onClose(); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  const item = (icon, label, onClick, active) => (
+    <button onClick={() => { onClick(); onClose(); }}
+      style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "10px 14px", background: active ? "var(--hover)" : "none", border: "none", cursor: "pointer", borderRadius: 8, color: "var(--text)", fontSize: 14, textAlign: "left" }}
+      onMouseEnter={e => e.currentTarget.style.background = "var(--hover)"}
+      onMouseLeave={e => e.currentTarget.style.background = active ? "var(--hover)" : "none"}>
+      <span style={{ color: "var(--text2)", flexShrink: 0 }}>{icon}</span>
+      <span style={{ flex: 1 }}>{label}</span>
+      {active && <span style={{ color: "var(--orange)", fontSize: 13, fontWeight: 600 }}>✓</span>}
+    </button>
+  );
+
+  return (
+    <div ref={menuRef} style={{ position: "absolute", bottom: "calc(100% + 8px)", left: 0, background: "#fff", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 8px 32px rgba(0,0,0,0.14)", padding: 6, minWidth: 220, zIndex: 999 }}>
+      {item(<ClipIcon size={16} />, "Add files or photos", onFile)}
+      {item(
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>,
+        "Web search",
+        onToggleWebSearch,
+        webSearch
+      )}
+    </div>
+  );
+}
+
 // ─── InputBar ─────────────────────────────────────────────────
 function InputBar({ onSend, streaming, onStop }) {
   const [text, setText]             = useState("");
   const [file, setFile]             = useState(null);
   const [selectedModel, setModel]   = useState("auto");
+  const [menuOpen, setMenuOpen]     = useState(false);
+  const [webSearch, setWebSearch]   = useState(false);
   const taRef   = useRef(null);
   const fileRef = useRef(null);
+  const plusRef = useRef(null);
 
   useEffect(() => {
     const ta = taRef.current; if (!ta) return;
@@ -1232,11 +1268,14 @@ function InputBar({ onSend, streaming, onStop }) {
 
   const submit = () => {
     const t = text.trim(); if (!t || streaming) return;
-    onSend(t, file, selectedModel); setText(""); setFile(null);
+    // Prefix message with web search instruction if enabled
+    const finalText = webSearch ? `[web search] ${t}` : t;
+    onSend(finalText, file, selectedModel); setText(""); setFile(null);
   };
 
   return (
     <div style={{ padding: "0 16px 18px", flexShrink: 0 }}>
+      {/* File preview */}
       {file && (
         <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 8, background: "#fff", border: "1px solid var(--border)", borderRadius: 10, padding: "8px 12px" }}>
           {(file.type || "").startsWith("image/")
@@ -1253,17 +1292,45 @@ function InputBar({ onSend, streaming, onStop }) {
           </button>
         </div>
       )}
-      <div style={{ background: "#fff", border: "1px solid #ccc5ba", borderRadius: 14, boxShadow: "0 2px 10px rgba(0,0,0,0.08)", overflow: "hidden" }}
+
+      {/* Web search active pill */}
+      {webSearch && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6, padding: "4px 10px", background: "#e0f2fe", border: "1px solid #bae6fd", borderRadius: 20, width: "fit-content" }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0284c7" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
+          <span style={{ fontSize: 11, fontWeight: 600, color: "#0284c7" }}>Web search on</span>
+          <button onClick={() => setWebSearch(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#0284c7", display: "flex", padding: 0, marginLeft: 2 }}><CloseIcon size={11} /></button>
+        </div>
+      )}
+
+      <div style={{ background: "#fff", border: "1px solid #ccc5ba", borderRadius: 14, boxShadow: "0 2px 10px rgba(0,0,0,0.08)", overflow: "visible", position: "relative" }}
         onFocusCapture={e => { e.currentTarget.style.boxShadow = "0 2px 14px rgba(0,0,0,0.12)"; e.currentTarget.style.borderColor = "#a89e93"; }}
         onBlurCapture={e  => { e.currentTarget.style.boxShadow = "0 2px 10px rgba(0,0,0,0.08)"; e.currentTarget.style.borderColor = "#ccc5ba"; }}>
+
+        {/* Attach menu */}
+        {menuOpen && (
+          <AttachMenu
+            onFile={() => fileRef.current?.click()}
+            webSearch={webSearch}
+            onToggleWebSearch={() => setWebSearch(v => !v)}
+            onClose={() => setMenuOpen(false)}
+          />
+        )}
+
         <textarea ref={taRef} value={text} onChange={e => setText(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
           placeholder="How can rk.ai help you today?" rows={1}
           style={{ width: "100%", background: "none", border: "none", outline: "none", padding: "14px 16px 0", color: "var(--text)", fontSize: 15, lineHeight: 1.65, resize: "none", maxHeight: 200, overflowY: "auto", display: "block", fontFamily: "inherit" }} />
+
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px 10px" }}>
-          <div style={{ display: "flex", gap: 2 }}>
-            <input ref={fileRef} type="file" accept="image/*,.pdf" onChange={e => { if (e.target.files[0]) setFile(e.target.files[0]); e.target.value = ""; }} style={{ display: "none" }} />
-            <IBtn onClick={() => fileRef.current?.click()} title="Attach file" active={!!file}><ClipIcon size={16} /></IBtn>
+          <div style={{ display: "flex", gap: 2, position: "relative" }}>
+            <input ref={fileRef} type="file" accept="image/*,.pdf,.txt,.csv,.doc,.docx" onChange={e => { if (e.target.files[0]) setFile(e.target.files[0]); e.target.value = ""; }} style={{ display: "none" }} />
+            {/* + button — opens attach menu */}
+            <button ref={plusRef} onClick={() => setMenuOpen(v => !v)}
+              style={{ width: 30, height: 30, borderRadius: "50%", background: menuOpen ? "var(--active)" : "var(--hover)", border: "1px solid var(--border)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text2)", fontSize: 20, fontWeight: 300, lineHeight: 1, transition: "all .15s", transform: menuOpen ? "rotate(45deg)" : "rotate(0deg)" }}
+              onMouseEnter={e => e.currentTarget.style.background = "var(--active)"}
+              onMouseLeave={e => e.currentTarget.style.background = menuOpen ? "var(--active)" : "var(--hover)"}>
+              +
+            </button>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <ModelSelector value={selectedModel} onChange={setModel} />
