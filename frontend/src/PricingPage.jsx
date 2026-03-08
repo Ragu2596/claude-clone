@@ -323,9 +323,21 @@ export default function PricingPage({ onClose }) {
 
             return (
               <div key={plan.id}
-                style={{ background: "#fff", border: `2px solid ${isCurrent ? plan.color : "#e8e2da"}`, borderRadius: 16, padding: "22px 16px", display: "flex", flexDirection: "column", position: "relative", boxShadow: isCurrent ? `0 4px 20px ${plan.color}25` : "0 2px 8px rgba(0,0,0,0.05)", transition: "transform .15s, box-shadow .15s" }}
-                onMouseEnter={e => { if (!isCurrent) { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = `0 8px 24px ${plan.color}22`; }}}
-                onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = isCurrent ? `0 4px 20px ${plan.color}25` : "0 2px 8px rgba(0,0,0,0.05)"; }}>
+                style={{ background: "#fff", border: `2px solid ${isCurrent ? plan.color : "#e8e2da"}`, borderRadius: 16, padding: "22px 16px", display: "flex", flexDirection: "column", position: "relative", boxShadow: isCurrent ? `0 4px 20px ${plan.color}25` : "0 2px 8px rgba(0,0,0,0.05)", transition: "transform .2s, box-shadow .2s, border-color .2s", cursor: isCurrent ? "default" : "pointer" }}
+                onMouseEnter={e => {
+                  if (!isCurrent) {
+                    e.currentTarget.style.transform    = "translateY(-5px)";
+                    e.currentTarget.style.boxShadow    = `0 12px 32px ${plan.color}40`;
+                    e.currentTarget.style.borderColor  = plan.color;
+                    e.currentTarget.style.background   = `${plan.color}06`;
+                  }
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform   = "translateY(0)";
+                  e.currentTarget.style.boxShadow   = isCurrent ? `0 4px 20px ${plan.color}25` : "0 2px 8px rgba(0,0,0,0.05)";
+                  e.currentTarget.style.borderColor = isCurrent ? plan.color : "#e8e2da";
+                  e.currentTarget.style.background  = "#fff";
+                }}>
 
                 {/* Badge */}
                 {(plan.badge || isCurrent) && (
@@ -358,8 +370,18 @@ export default function PricingPage({ onClose }) {
                   onClick={() => handleUpgrade(plan)}
                   disabled={btnDisabled}
                   style={{ width: "100%", padding: "10px 0", borderRadius: 9, border: "none", fontSize: 13, fontWeight: 700, marginBottom: 18, transition: "all .15s", cursor: btnDisabled ? "default" : "pointer", background: btnBg, color: btnColor, opacity: isProcessing ? 0.75 : 1 }}
-                  onMouseEnter={e => { if (!btnDisabled) { e.currentTarget.style.opacity = "0.85"; e.currentTarget.style.transform = "scale(1.01)"; } }}
-                  onMouseLeave={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.transform = "scale(1)"; }}>
+                  onMouseEnter={e => {
+                    if (!btnDisabled) {
+                      e.currentTarget.style.opacity   = "0.88";
+                      e.currentTarget.style.transform = "scale(1.02)";
+                      e.currentTarget.style.boxShadow = `0 4px 14px ${plan.color}55`;
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.opacity   = "1";
+                    e.currentTarget.style.transform = "scale(1)";
+                    e.currentTarget.style.boxShadow = "none";
+                  }}>
                   {btnLabel}
                 </button>
 
