@@ -290,9 +290,18 @@ export function useChat() {
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ name, description: desc, systemPrompt: sysprompt }),
       });
-      if (r.ok) { const p = await r.json(); setProjects(prev => [p, ...prev]); return p; }
+      if (r.ok) {
+        const p = await r.json();
+        setProjects(prev => [p, ...prev]);
+        // ✅ Immediately load conversations for new project (will be empty, that's fine)
+        setActiveProjectId(p.id);
+        updateActiveId(null);
+        setMessages([]);
+        await loadConvs(p.id);
+        return p;
+      }
     } catch (e) { console.error("createProject:", e); }
-  }, []);
+  }, [loadConvs]);
 
   const deleteProject = useCallback(async (id) => {
     try {
@@ -306,7 +315,7 @@ export function useChat() {
     setActiveProjectId(id);
     updateActiveId(null);
     setMessages([]);
-    loadConvs(id);
+    loadConvs(id); // reload convs for this project (or null = all non-project convs)
   }, [loadConvs]);
 
   return {

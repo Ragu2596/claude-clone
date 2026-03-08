@@ -558,9 +558,11 @@ function Sidebar({ conversations, projects, activeId, activeProjectId, selectCon
 
   const doCreate = async () => {
     if (!pForm.name.trim()) return;
-    await createProject(pForm.name, "", pForm.prompt);
+    const p = await createProject(pForm.name, "", pForm.prompt);
     setShowNewProj(false);
     setPForm({ name: "", prompt: "You are a helpful AI assistant." });
+    // ✅ Switch to new project immediately so conversations reload
+    if (p?.id) setActiveProjectId(p.id);
   };
 
   const go = fn => { fn(); if (isMobile && onClose) onClose(); };
@@ -620,8 +622,14 @@ function Sidebar({ conversations, projects, activeId, activeProjectId, selectCon
           </button>
         )}
 
-        <SectionHeader label="Recents" />
-        {conversations.length === 0 && <p style={{ fontSize: 13, color: "var(--text3)", padding: "4px 10px" }}>No conversations yet</p>}
+        {/* Clicking Recents when inside a project goes back to all chats */}
+        <div onClick={() => { if (activeProjectId) setActiveProjectId(null); }}
+          style={{ cursor: activeProjectId ? "pointer" : "default" }}>
+          <SectionHeader label={activeProjectId ? "← All Chats" : "Recents"} />
+        </div>
+        {conversations.length === 0 && <p style={{ fontSize: 13, color: "var(--text3)", padding: "4px 10px" }}>
+          {activeProjectId ? "No chats in this project yet" : "No conversations yet"}
+        </p>}
         {conversations.map(c => (
           <SideItem key={c.id} icon={<ChatIcon />} label={c.title} isActive={activeId === c.id}
             hovered={hovConv === c.id} onHover={setHovConv} id={c.id}
