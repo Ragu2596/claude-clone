@@ -300,9 +300,13 @@ function LanguageModal({ onClose }) {
     l.native.toLowerCase().includes(search.toLowerCase())
   );
 
+  const [saved, setSaved] = useState(false);
+  const LANG_NAMES = { en:"English",hi:"हिन्दी",ta:"தமிழ்",te:"తెలుగు",kn:"ಕನ್ನಡ",mr:"मराठी",bn:"বাংলা",gu:"ગુજરાતી",pa:"ਪੰਜਾਬੀ",zh:"中文",ja:"日本語",ko:"한국어",es:"Español",fr:"Français",de:"Deutsch",ar:"العربية" };
+
   const save = () => {
     localStorage.setItem("rk-lang", selected);
-    onClose();
+    setSaved(true);
+    setTimeout(() => { onClose(); }, 1200); // show tick then close
   };
 
   return (
@@ -329,9 +333,14 @@ function LanguageModal({ onClose }) {
             </div>
           ))}
         </div>
-        <button onClick={save} style={{ width: "100%", marginTop: 14, padding: 11, background: "var(--orange)", border: "none", borderRadius: 10, color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
-          Apply language
+        <button onClick={save} style={{ width: "100%", marginTop: 14, padding: 11, background: saved ? "#16a34a" : "var(--orange)", border: "none", borderRadius: 10, color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", transition: "background .3s" }}>
+          {saved ? `✓ ${LANG_NAMES[selected] || "Language"} applied!` : "Apply language"}
         </button>
+        {selected !== "en" && !saved && (
+          <p style={{ fontSize: 11, color: "var(--text3)", textAlign: "center", marginTop: 8 }}>
+            💡 AI will respond in {LANG_NAMES[selected]} from your next message
+          </p>
+        )}
       </div>
     </Modal>
   );

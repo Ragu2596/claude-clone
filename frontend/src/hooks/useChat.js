@@ -125,6 +125,7 @@ export function useChat() {
       fd.append("conversationId", cid);
       fd.append("message", text);
       fd.append("model", model || "auto");
+      fd.append("lang", localStorage.getItem("rk-lang") || "en"); // ← user language preference
       if (file) fd.append("file", file);
 
       abortRef.current = new AbortController();
