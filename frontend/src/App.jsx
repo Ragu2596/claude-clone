@@ -306,7 +306,7 @@ function LanguageModal({ onClose }) {
   const save = () => {
     localStorage.setItem("rk-lang", selected);
     setSaved(true);
-    setTimeout(() => { onClose(); }, 1200); // show tick then close
+    setTimeout(() => { window.location.reload(); }, 900); // reload so AI picks up new lang
   };
 
   return (
@@ -314,7 +314,7 @@ function LanguageModal({ onClose }) {
       <div style={{ padding: "24px 24px 20px" }}>
         <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text)", marginBottom: 16 }}>🌐 Language</h2>
         <p style={{ fontSize: 13, color: "var(--text2)", marginBottom: 14, lineHeight: 1.5 }}>
-          Choose your preferred language for the interface. AI responses will also try to match.
+          AI responses will be in your chosen language. The page will reload to apply.
         </p>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search languages..."
           style={{ ...inputStyle, marginBottom: 12, fontSize: 13 }} />
@@ -334,7 +334,7 @@ function LanguageModal({ onClose }) {
           ))}
         </div>
         <button onClick={save} style={{ width: "100%", marginTop: 14, padding: 11, background: saved ? "#16a34a" : "var(--orange)", border: "none", borderRadius: 10, color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", transition: "background .3s" }}>
-          {saved ? `✓ ${LANG_NAMES[selected] || "Language"} applied!` : "Apply language"}
+          {saved ? `✓ Applying... reloading` : "Apply language"}
         </button>
         {selected !== "en" && !saved && (
           <p style={{ fontSize: 11, color: "var(--text3)", textAlign: "center", marginTop: 8 }}>
