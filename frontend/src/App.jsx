@@ -1035,30 +1035,41 @@ const MODELS = [
 // ── Hook: fetch live model list from backend ──────────────────
 function useModels() {
   const [models, setModels] = useState(MODELS);
+  const { user } = useAuth(); // wait for auth before fetching
   const API = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
+    if (!user) return; // don't fetch until logged in
     const token = localStorage.getItem("token");
     if (!token) return;
-    fetch(`${API}/api/models`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json())
+
+    fetch(`${API}/api/models`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then(data => {
-        if (!Array.isArray(data) || data.length === 0) return;
-        // Auto group → always first
+        if (!Array.isArray(data) || data.length === 0) {
+          console.warn("⚠️ Models API returned empty list");
+          return;
+        }
         const autoModel = { id: "auto", label: "Auto", sub: "Best model · Auto pick", badge: "AUTO", color: "#6b7280", group: "auto" };
         const mapped = data.map(m => ({
           id:    m.modelId,
           label: m.displayName,
-          sub:   m.badge === 'FREE' ? `Free · ${m.provider}` : m.requiredPlan ? `${m.requiredPlan} · ${m.provider}` : m.provider,
+          sub:   m.badge === "FREE" ? "Free" : m.requiredPlan ? m.requiredPlan : "paid",
           badge: m.badge,
           color: m.color,
           group: m.group,
           isNew: m.isNew,
         }));
         setModels([autoModel, ...mapped]);
+        console.log(`✅ Loaded ${mapped.length} models from DB`);
       })
       .catch(e => console.warn("⚠️ Models fetch failed:", e.message));
-  }, []);
+  }, [user]); // re-runs when user logs in
 
   return models;
 }
