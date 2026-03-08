@@ -198,14 +198,369 @@ function Field({ label, type = "text", value, onChange, placeholder, onKeyDown }
   );
 }
 
+// ─── Modal Shell ─────────────────────────────────────────────
+function Modal({ onClose, children, width = 480 }) {
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{ background: "#faf8f5", borderRadius: 18, width: "100%", maxWidth: width, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.2)", position: "relative" }}>
+        <button onClick={onClose} style={{ position: "absolute", top: 14, right: 14, background: "none", border: "none", fontSize: 20, color: "#aaa", cursor: "pointer", lineHeight: 1, padding: 4 }}>✕</button>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ─── Settings Modal ───────────────────────────────────────────
+function SettingsModal({ onClose }) {
+  const { user } = useAuth();
+  const [theme,    setTheme]    = useState(localStorage.getItem("rk-theme")    || "light");
+  const [fontSize, setFontSize] = useState(localStorage.getItem("rk-fontsize") || "medium");
+  const [saved,    setSaved]    = useState(false);
+
+  const save = () => {
+    localStorage.setItem("rk-theme",    theme);
+    localStorage.setItem("rk-fontsize", fontSize);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const Section = ({ title, children }) => (
+    <div style={{ marginBottom: 24 }}>
+      <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>{title}</p>
+      {children}
+    </div>
+  );
+
+  const Row = ({ label, sub, children }) => (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 0", borderBottom: "1px solid var(--border)" }}>
+      <div>
+        <p style={{ fontSize: 14, color: "var(--text)", fontWeight: 500 }}>{label}</p>
+        {sub && <p style={{ fontSize: 12, color: "var(--text3)", marginTop: 2 }}>{sub}</p>}
+      </div>
+      {children}
+    </div>
+  );
+
+  const ToggleGroup = ({ value, onChange, options }) => (
+    <div style={{ display: "inline-flex", background: "#e8e2da", borderRadius: 8, padding: 2 }}>
+      {options.map(o => (
+        <button key={o.value} onClick={() => onChange(o.value)} style={{ padding: "5px 12px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: value === o.value ? "#fff" : "transparent", color: value === o.value ? "var(--text)" : "var(--text3)", boxShadow: value === o.value ? "0 1px 3px rgba(0,0,0,0.1)" : "none", transition: "all .15s" }}>
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+
+  return (
+    <Modal onClose={onClose} width={460}>
+      <div style={{ padding: "28px 28px 24px" }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", marginBottom: 24 }}>⚙️ Settings</h2>
+
+        <Section title="Account">
+          <Row label="Name" sub={user?.name}>
+            <span style={{ fontSize: 12, color: "var(--text3)" }}>via Google</span>
+          </Row>
+          <Row label="Email" sub={user?.email}>
+            <span style={{ fontSize: 12, color: "var(--text3)" }}></span>
+          </Row>
+          <Row label="Plan">
+            <span style={{ fontSize: 12, fontWeight: 700, background: "var(--orange)", color: "#fff", borderRadius: 99, padding: "2px 10px", textTransform: "uppercase" }}>{user?.plan || "free"}</span>
+          </Row>
+        </Section>
+
+        <Section title="Appearance">
+          <Row label="Theme" sub="Interface color scheme">
+            <ToggleGroup value={theme} onChange={setTheme} options={[{ value: "light", label: "☀️ Light" }, { value: "dark", label: "🌙 Dark" }, { value: "system", label: "💻 System" }]} />
+          </Row>
+          <Row label="Font size" sub="Message text size">
+            <ToggleGroup value={fontSize} onChange={setFontSize} options={[{ value: "small", label: "S" }, { value: "medium", label: "M" }, { value: "large", label: "L" }]} />
+          </Row>
+        </Section>
+
+        <Section title="Danger zone">
+          <Row label="Delete all conversations" sub="This cannot be undone">
+            <button style={{ padding: "6px 12px", background: "none", border: "1px solid #fca5a5", borderRadius: 7, color: "#dc2626", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+              onClick={() => { if (confirm("Delete ALL conversations? This cannot be undone.")) alert("Feature coming soon!"); }}>
+              Delete all
+            </button>
+          </Row>
+        </Section>
+
+        <button onClick={save} style={{ width: "100%", padding: 12, background: "var(--orange)", border: "none", borderRadius: 10, color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+          {saved ? "✓ Saved!" : "Save changes"}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+// ─── Language Modal ───────────────────────────────────────────
+function LanguageModal({ onClose }) {
+  const LANGS = [
+    { code: "en",    flag: "🇬🇧", name: "English",    native: "English"    },
+    { code: "hi",    flag: "🇮🇳", name: "Hindi",      native: "हिन्दी"       },
+    { code: "ta",    flag: "🇮🇳", name: "Tamil",      native: "தமிழ்"        },
+    { code: "te",    flag: "🇮🇳", name: "Telugu",     native: "తెలుగు"       },
+    { code: "kn",    flag: "🇮🇳", name: "Kannada",    native: "ಕನ್ನಡ"        },
+    { code: "mr",    flag: "🇮🇳", name: "Marathi",    native: "मराठी"        },
+    { code: "bn",    flag: "🇮🇳", name: "Bengali",    native: "বাংলা"        },
+    { code: "gu",    flag: "🇮🇳", name: "Gujarati",   native: "ગુજરાતી"      },
+    { code: "pa",    flag: "🇮🇳", name: "Punjabi",    native: "ਪੰਜਾਬੀ"       },
+    { code: "zh",    flag: "🇨🇳", name: "Chinese",    native: "中文"         },
+    { code: "ja",    flag: "🇯🇵", name: "Japanese",   native: "日本語"        },
+    { code: "ko",    flag: "🇰🇷", name: "Korean",     native: "한국어"        },
+    { code: "es",    flag: "🇪🇸", name: "Spanish",    native: "Español"    },
+    { code: "fr",    flag: "🇫🇷", name: "French",     native: "Français"   },
+    { code: "de",    flag: "🇩🇪", name: "German",     native: "Deutsch"    },
+    { code: "ar",    flag: "🇸🇦", name: "Arabic",     native: "العربية"     },
+  ];
+
+  const [selected, setSelected] = useState(localStorage.getItem("rk-lang") || "en");
+  const [search,   setSearch]   = useState("");
+
+  const filtered = LANGS.filter(l =>
+    l.name.toLowerCase().includes(search.toLowerCase()) ||
+    l.native.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const save = () => {
+    localStorage.setItem("rk-lang", selected);
+    onClose();
+  };
+
+  return (
+    <Modal onClose={onClose} width={380}>
+      <div style={{ padding: "24px 24px 20px" }}>
+        <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text)", marginBottom: 16 }}>🌐 Language</h2>
+        <p style={{ fontSize: 13, color: "var(--text2)", marginBottom: 14, lineHeight: 1.5 }}>
+          Choose your preferred language for the interface. AI responses will also try to match.
+        </p>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search languages..."
+          style={{ ...inputStyle, marginBottom: 12, fontSize: 13 }} />
+        <div style={{ maxHeight: 300, overflowY: "auto", borderRadius: 10, border: "1px solid var(--border)", background: "#fff" }}>
+          {filtered.map((l, i) => (
+            <div key={l.code} onClick={() => setSelected(l.code)}
+              style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", cursor: "pointer", background: selected === l.code ? "#faf0ea" : "#fff", borderBottom: i < filtered.length - 1 ? "1px solid #f5f0e8" : "none", transition: "background .1s" }}
+              onMouseEnter={e => { if (selected !== l.code) e.currentTarget.style.background = "#faf8f5"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = selected === l.code ? "#faf0ea" : "#fff"; }}>
+              <span style={{ fontSize: 20 }}>{l.flag}</span>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 13, fontWeight: 500, color: "var(--text)" }}>{l.name}</p>
+                <p style={{ fontSize: 11, color: "var(--text3)" }}>{l.native}</p>
+              </div>
+              {selected === l.code && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
+            </div>
+          ))}
+        </div>
+        <button onClick={save} style={{ width: "100%", marginTop: 14, padding: 11, background: "var(--orange)", border: "none", borderRadius: 10, color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+          Apply language
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+// ─── Get Help Modal (with live chat) ─────────────────────────
+function HelpModal({ onClose }) {
+  const { user } = useAuth();
+  const [tab,     setTab]     = useState("faq");   // "faq" | "chat"
+  const [chatMsg, setChatMsg] = useState("");
+  const [chatLog, setChatLog] = useState([
+    { role: "support", text: "👋 Hi! I'm the rk.ai support assistant. How can I help you today?" }
+  ]);
+  const [loading, setLoading] = useState(false);
+  const chatEndRef = useRef(null);
+  const API = import.meta.env.VITE_API_URL;
+
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatLog]);
+
+  const FAQS = [
+    { q: "How do daily/hourly limits work?",   a: "Limits are rolling windows — not midnight resets. Use 80 msgs in an hour, wait a bit, they come back. Hourly, daily, and weekly limits all refill as old messages age out." },
+    { q: "Which models are free?",              a: "Groq (Llama 3.3), Gemini Flash/Pro, Mistral, Together AI models are completely free. Claude Haiku/GPT-4o Mini need Starter+, Claude Sonnet/GPT-4o need Pro+." },
+    { q: "How do I upgrade my plan?",           a: "Click 'Upgrade plan' in the sidebar menu or click the 'Upgrade ↑' button in the usage bar. We accept UPI, cards, and netbanking via Razorpay." },
+    { q: "Can I upload files?",                 a: "Yes! Starter plan and above can upload images and PDFs. Free plan is text-only." },
+    { q: "What is the knowledge cache?",        a: "Common questions are cached — if many users ask the same thing, the answer is served instantly from our DB at zero AI cost. This keeps prices low for everyone!" },
+    { q: "How do I cancel my subscription?",   a: "Plans are one-time monthly/yearly payments — not auto-recurring subscriptions. Just don't renew and you'll automatically drop back to Free after expiry." },
+    { q: "Is my data safe?",                    a: "Your conversations are stored only in our database for chat history. We don't train AI models on your data. API calls go directly to providers (Groq, OpenAI, Anthropic)." },
+    { q: "How does Perplexity web search work?", a: "Select 'Perplexity Online' model — it searches the live web before answering, giving you up-to-date information. Available on Starter plan and above." },
+  ];
+  const [openFaq, setOpenFaq] = useState(null);
+
+  const sendChat = async () => {
+    const txt = chatMsg.trim();
+    if (!txt || loading) return;
+    setChatMsg("");
+    setChatLog(prev => [...prev, { role: "user", text: txt }]);
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 400,
+          system: `You are a friendly, concise support assistant for rk.ai — an AI chat app built for Indian users. Plans: Free (20 msgs/hr limit), Starter ₹199/mo, Pro ₹499/mo, Max ₹999/mo. Payments via Razorpay. Models: free (Groq/Gemini/Mistral), Starter+ (Claude Haiku, GPT-4o Mini, Perplexity), Pro+ (GPT-4o, Claude Sonnet). Rate limits are rolling windows, not midnight resets. Keep answers short (2-3 sentences max). User: ${user?.name || "guest"}`,
+          messages: [
+            ...chatLog.filter(m => m.role !== "support").map(m => ({ role: m.role === "user" ? "user" : "assistant", content: m.text })),
+            { role: "user", content: txt }
+          ],
+        }),
+      });
+      const data = await res.json();
+      const reply = data.content?.[0]?.text || "Sorry, I couldn't get a response. Please try again.";
+      setChatLog(prev => [...prev, { role: "support", text: reply }]);
+    } catch {
+      setChatLog(prev => [...prev, { role: "support", text: "Something went wrong. Please email support@rk.ai" }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal onClose={onClose} width={480}>
+      <div style={{ padding: "24px 24px 20px" }}>
+        <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text)", marginBottom: 16 }}>❓ Help & Support</h2>
+
+        {/* Tabs */}
+        <div style={{ display: "flex", background: "#e8e2da", borderRadius: 10, padding: 3, marginBottom: 18 }}>
+          {[["faq", "📋 FAQ"], ["chat", "💬 Live Chat"]].map(([val, label]) => (
+            <button key={val} onClick={() => setTab(val)} style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, background: tab === val ? "#fff" : "transparent", color: tab === val ? "var(--text)" : "var(--text3)", boxShadow: tab === val ? "0 1px 4px rgba(0,0,0,0.1)" : "none", transition: "all .15s" }}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* FAQ */}
+        {tab === "faq" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {FAQS.map((f, i) => (
+              <div key={i} style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden", background: "#fff" }}>
+                <button onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", background: "none", border: "none", cursor: "pointer", textAlign: "left", gap: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", flex: 1 }}>{f.q}</span>
+                  <span style={{ color: "var(--text3)", fontSize: 18, transform: openFaq === i ? "rotate(45deg)" : "rotate(0)", transition: "transform .2s", flexShrink: 0 }}>+</span>
+                </button>
+                {openFaq === i && (
+                  <div style={{ padding: "0 14px 12px", fontSize: 13, color: "var(--text2)", lineHeight: 1.65 }}>{f.a}</div>
+                )}
+              </div>
+            ))}
+            <div style={{ marginTop: 8, padding: "12px 14px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, fontSize: 12, color: "#166534", textAlign: "center" }}>
+              Still stuck? Switch to <strong>Live Chat</strong> tab for instant answers ↑
+            </div>
+          </div>
+        )}
+
+        {/* Live Chat */}
+        {tab === "chat" && (
+          <div style={{ display: "flex", flexDirection: "column", height: 380 }}>
+            <div style={{ flex: 1, overflowY: "auto", background: "#fff", border: "1px solid var(--border)", borderRadius: 12, padding: 12, display: "flex", flexDirection: "column", gap: 10, marginBottom: 10 }}>
+              {chatLog.map((m, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start", gap: 8 }}>
+                  {m.role === "support" && (
+                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--orange)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
+                      <span style={{ fontSize: 14 }}>🤖</span>
+                    </div>
+                  )}
+                  <div style={{ maxWidth: "78%", padding: "9px 13px", borderRadius: 14, borderBottomLeftRadius: m.role === "support" ? 3 : 14, borderBottomRightRadius: m.role === "user" ? 3 : 14, background: m.role === "user" ? "var(--user-bubble)" : "#f3ede4", color: m.role === "user" ? "#fff" : "var(--text)", fontSize: 13, lineHeight: 1.6 }}>
+                    {m.text}
+                  </div>
+                </div>
+              ))}
+              {loading && (
+                <div style={{ display: "flex", gap: 8 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--orange)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><span style={{ fontSize: 14 }}>🤖</span></div>
+                  <div style={{ background: "#f3ede4", borderRadius: 14, borderBottomLeftRadius: 3, padding: "12px 16px", display: "flex", gap: 4 }}>
+                    {[0, 0.2, 0.4].map((d, i) => <div key={i} style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--orange)", animation: `dot 1.2s ease ${d}s infinite` }} />)}
+                  </div>
+                </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input value={chatMsg} onChange={e => setChatMsg(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && sendChat()}
+                placeholder="Ask anything about rk.ai..."
+                style={{ ...inputStyle, flex: 1, borderRadius: 10 }} />
+              <button onClick={sendChat} disabled={!chatMsg.trim() || loading}
+                style={{ padding: "9px 16px", background: chatMsg.trim() ? "var(--orange)" : "var(--hover)", border: "none", borderRadius: 10, color: chatMsg.trim() ? "#fff" : "var(--text3)", cursor: chatMsg.trim() ? "pointer" : "default", fontSize: 13, fontWeight: 600, flexShrink: 0, transition: "all .15s" }}>
+                Send
+              </button>
+            </div>
+            <p style={{ fontSize: 11, color: "var(--text3)", textAlign: "center", marginTop: 8 }}>
+              Powered by Claude Haiku · Response in seconds
+            </p>
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+// ─── Gift Modal ───────────────────────────────────────────────
+function GiftModal({ onClose }) {
+  const [copied, setCopied] = useState(false);
+  const link = "https://rk.ai/?ref=gift";
+  const copy = () => { navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 2500); };
+
+  const shareOptions = [
+    { label: "WhatsApp",  color: "#25d366", emoji: "💬", url: `https://wa.me/?text=Try rk.ai — affordable AI for Indians! Free to start. ${link}` },
+    { label: "Twitter/X", color: "#000",    emoji: "🐦", url: `https://twitter.com/intent/tweet?text=Just discovered rk.ai — AI chat that actually works for Indian users. Way cheaper than ChatGPT!&url=${link}` },
+    { label: "LinkedIn",  color: "#0077b5", emoji: "💼", url: `https://www.linkedin.com/sharing/share-offsite/?url=${link}` },
+  ];
+
+  return (
+    <Modal onClose={onClose} width={400}>
+      <div style={{ padding: "28px 24px" }}>
+        <div style={{ textAlign: "center", marginBottom: 22 }}>
+          <div style={{ fontSize: 48, marginBottom: 10 }}>🎁</div>
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: "var(--text)", marginBottom: 6 }}>Share rk.ai</h2>
+          <p style={{ fontSize: 13, color: "var(--text2)", lineHeight: 1.6, maxWidth: 300, margin: "0 auto" }}>
+            Know someone who'd love affordable AI? Share rk.ai and help them save money on AI tools.
+          </p>
+        </div>
+
+        {/* Copy link */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
+          <div style={{ flex: 1, padding: "9px 12px", background: "#fff", border: "1px solid var(--border)", borderRadius: 9, fontSize: 12, color: "var(--text2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {link}
+          </div>
+          <button onClick={copy} style={{ padding: "9px 14px", background: copied ? "#16a34a" : "var(--orange)", border: "none", borderRadius: 9, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", flexShrink: 0, transition: "background .2s" }}>
+            {copied ? "✓ Copied!" : "Copy"}
+          </button>
+        </div>
+
+        {/* Share buttons */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {shareOptions.map(s => (
+            <a key={s.label} href={s.url} target="_blank" rel="noreferrer"
+              style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", background: s.color, borderRadius: 10, color: "#fff", textDecoration: "none", fontSize: 13, fontWeight: 600, transition: "opacity .15s" }}
+              onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
+              onMouseLeave={e => e.currentTarget.style.opacity = "1"}>
+              <span style={{ fontSize: 18 }}>{s.emoji}</span> Share on {s.label}
+            </a>
+          ))}
+        </div>
+
+        <p style={{ textAlign: "center", fontSize: 11, color: "var(--text3)", marginTop: 16 }}>
+          Every share helps keep rk.ai prices low for everyone 🙏
+        </p>
+      </div>
+    </Modal>
+  );
+}
+
 // ─── Sidebar ──────────────────────────────────────────────────
 function Sidebar({ conversations, projects, activeId, activeProjectId, selectConv, newConv, deleteConv, setActiveProjectId, createProject, deleteProject, onUpgrade, isMobile, onClose }) {
   const { user, logout } = useAuth();
-  const [showMenu, setShowMenu]       = useState(false);
+  const [showMenu,    setShowMenu]    = useState(false);
   const [showNewProj, setShowNewProj] = useState(false);
   const [pForm, setPForm]             = useState({ name: "", prompt: "You are a helpful AI assistant." });
-  const [hovConv, setHovConv]         = useState(null);
-  const [hovProj, setHovProj]         = useState(null);
+  const [hovConv,     setHovConv]     = useState(null);
+  const [hovProj,     setHovProj]     = useState(null);
+  const [activeModal, setActiveModal] = useState(null); // "settings"|"language"|"help"|"gift"
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -223,15 +578,17 @@ function Sidebar({ conversations, projects, activeId, activeProjectId, selectCon
 
   const go = fn => { fn(); if (isMobile && onClose) onClose(); };
 
+  const openModal = (name) => { setActiveModal(name); setShowMenu(false); };
+
   const menuItems = [
-    { icon: "⚙️", label: "Settings" },
-    { icon: "🌐", label: "Language", arrow: true },
-    { icon: "❓", label: "Get help" },
+    { icon: "⚙️", label: "Settings",     action: () => openModal("settings") },
+    { icon: "🌐", label: "Language",     action: () => openModal("language"), arrow: true },
+    { icon: "❓", label: "Get help",     action: () => openModal("help")     },
     null,
     { icon: "⬆️", label: "Upgrade plan", action: () => { onUpgrade(); if (isMobile && onClose) onClose(); } },
-    { icon: "🎁", label: "Gift rk.ai" },
+    { icon: "🎁", label: "Gift rk.ai",   action: () => openModal("gift")     },
     null,
-    { icon: "↪️", label: "Log out", action: logout, danger: true },
+    { icon: "↪️", label: "Log out",      action: logout, danger: true },
   ];
 
   return (
@@ -318,6 +675,12 @@ function Sidebar({ conversations, projects, activeId, activeProjectId, selectCon
           <ChevronDown size={13} />
         </button>
       </div>
+
+      {/* Modals rendered outside sidebar scroll */}
+      {activeModal === "settings"  && <SettingsModal  onClose={() => setActiveModal(null)} />}
+      {activeModal === "language"  && <LanguageModal  onClose={() => setActiveModal(null)} />}
+      {activeModal === "help"      && <HelpModal      onClose={() => setActiveModal(null)} />}
+      {activeModal === "gift"      && <GiftModal      onClose={() => setActiveModal(null)} />}
     </div>
   );
 }
