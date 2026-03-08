@@ -114,10 +114,12 @@ model Message {
   fileUrl        String?
   fileName       String?
   fileType       String?
+  modelUsed      String?      // e.g. "claude-sonnet-4-6" — for per-model daily limits
   createdAt      DateTime     @default(now())
 
   @@index([conversationId])
   @@index([conversationId, createdAt])
+  @@index([modelUsed, createdAt])
 }
 
 model KnowledgeCache {

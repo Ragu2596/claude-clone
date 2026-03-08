@@ -71,10 +71,26 @@ const MODELS = {
 //   daily   = fair use           (rolling 24h)
 //   weekly  = heavy use cap      (rolling 7d)
 const RATE_LIMITS = {
-  free:    { hourly: 10,  daily: 20,    weekly: 80    },
-  starter: { hourly: 40,  daily: 200,   weekly: 1000  },
-  pro:     { hourly: 80,  daily: 1000,  weekly: 5000  },
-  max:     { hourly: 500, daily: 9999,  weekly: 99999 },
+  free:    { fiveHour: 10,  daily: 20,   weekly: 80    },
+  starter: { fiveHour: 40,  daily: 200,  weekly: 1000  },
+  pro:     { fiveHour: 50,  daily: 500,  weekly: 3000  }, // slightly better than Claude Pro (45/5hrs)
+  max:     { fiveHour: 100, daily: 2000, weekly: 10000 }, // 2x Claude Pro
+};
+
+// ── Per-model daily caps — protect against expensive model abuse ──
+// Opus is 25x more expensive than Haiku — must hard-cap per day
+const MODEL_DAILY_LIMITS = {
+  // Anthropic
+  'claude-opus-4-6':           { free: 0, starter: 0, pro: 0,   max: 20  },
+  'claude-sonnet-4-6':         { free: 0, starter: 0, pro: 100, max: 300 },
+  'claude-haiku-4-5-20251001': { free: 0, starter: 50, pro: 999, max: 999 },
+  // OpenAI
+  'o1-mini':   { free: 0, starter: 0,  pro: 30,  max: 100 },
+  'gpt-4o':    { free: 0, starter: 0,  pro: 100, max: 300 },
+  'gpt-4o-mini': { free: 0, starter: 50, pro: 999, max: 999 },
+  // Perplexity (web search — costs money per call)
+  'llama-3.1-sonar-large-128k-online': { free: 0, starter: 0,  pro: 50,  max: 200 },
+  'llama-3.1-sonar-small-128k-online': { free: 0, starter: 20, pro: 100, max: 500 },
 };
 
 // DB-backed model lookup (falls back to static if DB empty)
@@ -177,29 +193,60 @@ async function nextAvailableAt(userId, windowMs, limit) {
   return new Date(msgs[0].createdAt.getTime() + windowMs);
 }
 
-// ─── Main rate limit check (3 windows) ───────────────────────
-async function checkRateLimit(userId, userPlan) {
-  const limits  = RATE_LIMITS[userPlan] || RATE_LIMITS.free;
-  const now     = Date.now();
+// ─── Per-model daily limit check ─────────────────────────────
+async function checkModelDailyLimit(userId, modelId, userPlan) {
+  const limits = MODEL_DAILY_LIMITS[modelId];
+  if (!limits) return { exceeded: false }; // free models — no limit
 
-  const [hourCount, dayCount, weekCount] = await Promise.all([
-    countMsgsInWindow(userId, new Date(now - 60 * 60 * 1000)),          // last 1h
-    countMsgsInWindow(userId, new Date(now - 24 * 60 * 60 * 1000)),     // last 24h
-    countMsgsInWindow(userId, new Date(now - 7 * 24 * 60 * 60 * 1000)), // last 7d
-  ]);
+  const planLimit = limits[userPlan] ?? 0;
+  if (planLimit === 999) return { exceeded: false }; // effectively unlimited
 
-  // Check hourly burst first
-  if (hourCount >= limits.hourly) {
-    const retryAt = await nextAvailableAt(userId, 60 * 60 * 1000, limits.hourly);
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const count = await prisma.message.count({
+    where: {
+      role: 'user',
+      modelUsed: modelId,
+      conversation: { userId },
+      createdAt: { gte: since },
+    },
+  });
+
+  if (count >= planLimit) {
     return {
       exceeded:  true,
-      window:    'hourly',
-      count:     hourCount,
-      limit:     limits.hourly,
+      modelId,
+      count,
+      limit:     planLimit,
+      window:    'model_daily',
+      retryAt:   new Date(Date.now() + 24 * 60 * 60 * 1000),
+    };
+  }
+  return { exceeded: false, count, limit: planLimit };
+}
+
+// ─── Main rate limit check (5hr window + daily + weekly) ─────
+async function checkRateLimit(userId, userPlan) {
+  const limits = RATE_LIMITS[userPlan] || RATE_LIMITS.free;
+  const now    = Date.now();
+
+  const [fiveHourCount, dayCount, weekCount] = await Promise.all([
+    countMsgsInWindow(userId, new Date(now - 5 * 60 * 60 * 1000)),        // last 5h  (like Claude Pro)
+    countMsgsInWindow(userId, new Date(now - 24 * 60 * 60 * 1000)),       // last 24h
+    countMsgsInWindow(userId, new Date(now - 7 * 24 * 60 * 60 * 1000)),   // last 7d
+  ]);
+
+  // Check 5-hour burst window first (primary limit — like Claude Pro)
+  if (fiveHourCount >= limits.fiveHour) {
+    const retryAt = await nextAvailableAt(userId, 5 * 60 * 60 * 1000, limits.fiveHour);
+    return {
+      exceeded:      true,
+      window:        'fiveHour',
+      count:         fiveHourCount,
+      limit:         limits.fiveHour,
       retryAt,
-      dayCount,  dayLimit:  limits.daily,
-      weekCount, weekLimit: limits.weekly,
-      plan:      userPlan,
+      dayCount,      dayLimit:  limits.daily,
+      weekCount,     weekLimit: limits.weekly,
+      plan:          userPlan,
     };
   }
 
@@ -234,11 +281,11 @@ async function checkRateLimit(userId, userPlan) {
   }
 
   return {
-    exceeded:  false,
-    hourCount, hourLimit: limits.hourly,
-    dayCount,  dayLimit:  limits.daily,
-    weekCount, weekLimit: limits.weekly,
-    plan:      userPlan,
+    exceeded:      false,
+    fiveHourCount, fiveHourLimit: limits.fiveHour,
+    dayCount,      dayLimit:      limits.daily,
+    weekCount,     weekLimit:     limits.weekly,
+    plan:          userPlan,
   };
 }
 
@@ -409,6 +456,20 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
       chosenModel = MODELS['auto'];
     }
 
+    // Step 5: Check per-model daily limit (e.g. Opus max 20/day)
+    const modelLimit = await checkModelDailyLimit(req.user.id, chosenModel.id, userPlan);
+    if (modelLimit.exceeded) {
+      return res.status(429).json({
+        error:       'Model daily limit reached',
+        modelLimitExceeded: true,
+        modelId:     modelLimit.modelId,
+        limit:       modelLimit.limit,
+        count:       modelLimit.count,
+        retryAt:     modelLimit.retryAt,
+        message:     `You've used all ${modelLimit.limit} daily messages for this model. Try again tomorrow or use a different model.`,
+      });
+    }
+
     // If user's monthly API budget is exhausted → silently fall back to free model
     // They still get service, just on Groq instead of Claude/GPT
     if (budgetExhausted && chosenModel.requiredPlan) {
@@ -431,7 +492,7 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
       fileType = req.file.mimetype;
     }
     await prisma.message.create({
-      data: { role: 'user', content: message, conversationId, fileUrl, fileName, fileType },
+      data: { role: 'user', content: message, conversationId, fileUrl, fileName, fileType, modelUsed: chosenModel.id },
     });
 
     // Check knowledge cache
