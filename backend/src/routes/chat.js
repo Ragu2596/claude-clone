@@ -47,17 +47,18 @@ function send(res, data) {
 // ─── Model Registry ───────────────────────────────────────────
 // requiredPlan: null = free, 'starter' = starter+, 'pro' = pro+, 'max' = max only
 const MODELS = {
+  // FREE users: only Groq Llama 3.3 + Gemini Flash — everything else needs Starter+
   'auto':                      { provider: 'groq',       id: 'llama-3.3-70b-versatile',                 free: true,  requiredPlan: null      },
   'llama-3.3-70b-versatile':   { provider: 'groq',       id: 'llama-3.3-70b-versatile',                 free: true,  requiredPlan: null      },
-  'mixtral-8x7b-32768':        { provider: 'groq',       id: 'mixtral-8x7b-32768',                      free: true,  requiredPlan: null      },
+  'mixtral-8x7b-32768':        { provider: 'groq',       id: 'mixtral-8x7b-32768',                      free: false, requiredPlan: 'starter' },
   'gemini-2.0-flash':          { provider: 'gemini',     id: 'gemini-2.0-flash',                        free: true,  requiredPlan: null      },
-  'gemini-1.5-flash':          { provider: 'gemini',     id: 'gemini-1.5-flash',                        free: true,  requiredPlan: null      },
-  'gemini-1.5-pro':            { provider: 'gemini',     id: 'gemini-1.5-pro',                          free: true,  requiredPlan: null      },
-  'mistral-small':             { provider: 'mistral',    id: 'mistral-small-latest',                    free: true,  requiredPlan: null      },
-  'mistral-large':             { provider: 'mistral',    id: 'mistral-large-latest',                    free: true,  requiredPlan: null      },
-  'together-llama':            { provider: 'together',   id: 'meta-llama/Llama-3.3-70B-Instruct-Turbo', free: true,  requiredPlan: null      },
-  'together-deepseek':         { provider: 'together',   id: 'deepseek-ai/DeepSeek-V3',                 free: true,  requiredPlan: null      },
-  'together-qwen':             { provider: 'together',   id: 'Qwen/Qwen2.5-72B-Instruct-Turbo',         free: true,  requiredPlan: null      },
+  'gemini-1.5-flash':          { provider: 'gemini',     id: 'gemini-1.5-flash',                        free: false, requiredPlan: 'starter' },
+  'gemini-1.5-pro':            { provider: 'gemini',     id: 'gemini-1.5-pro',                          free: false, requiredPlan: 'starter' },
+  'mistral-small':             { provider: 'mistral',    id: 'mistral-small-latest',                    free: false, requiredPlan: 'starter' },
+  'mistral-large':             { provider: 'mistral',    id: 'mistral-large-latest',                    free: false, requiredPlan: 'starter' },
+  'together-llama':            { provider: 'together',   id: 'meta-llama/Llama-3.3-70B-Instruct-Turbo', free: false, requiredPlan: 'starter' },
+  'together-deepseek':         { provider: 'together',   id: 'deepseek-ai/DeepSeek-V3',                 free: false, requiredPlan: 'starter' },
+  'together-qwen':             { provider: 'together',   id: 'Qwen/Qwen2.5-72B-Instruct-Turbo',         free: false, requiredPlan: 'starter' },
   'perplexity-online':         { provider: 'perplexity', id: 'llama-3.1-sonar-small-128k-online',       free: false, requiredPlan: 'starter' },
   'perplexity-large-online':   { provider: 'perplexity', id: 'llama-3.1-sonar-large-128k-online',       free: false, requiredPlan: 'starter' },
   'claude-haiku-4-5-20251001': { provider: 'anthropic',  id: 'claude-haiku-4-5-20251001',               free: false, requiredPlan: 'starter' },
@@ -71,10 +72,10 @@ const MODELS = {
 //   daily   = fair use           (rolling 24h)
 //   weekly  = heavy use cap      (rolling 7d)
 const RATE_LIMITS = {
-  free:    { fiveHour: 10,  daily: 20,   weekly: 80    },
-  starter: { fiveHour: 40,  daily: 200,  weekly: 1000  },
-  pro:     { fiveHour: 50,  daily: 500,  weekly: 3000  }, // slightly better than Claude Pro (45/5hrs)
-  max:     { fiveHour: 100, daily: 2000, weekly: 10000 }, // 2x Claude Pro
+  free:    { fiveHour: 3,   daily: 5,    weekly: 20    }, // very limited — just to try
+  starter: { fiveHour: 30,  daily: 100,  weekly: 500   }, // ₹499/mo — reasonable daily use
+  pro:     { fiveHour: 60,  daily: 500,  weekly: 3000  }, // ₹999/mo — power users
+  max:     { fiveHour: 150, daily: 2000, weekly: 10000 }, // ₹1999/mo — unlimited feel
 };
 
 // ── Per-model daily caps — protect against expensive model abuse ──

@@ -48,9 +48,9 @@ const MODEL_COSTS = {
 // Max:        $8.00  (~₹665) — you collect ₹999, spend max ₹665 on API
 export const PLAN_BUDGETS = {
   free:    0,
-  starter: 800_000,    // $0.80
-  pro:     3_000_000,  // $3.00
-  max:     8_000_000,  // $8.00
+  starter:  3_000_000,   // $3.00  (~₹250) — collected ₹499
+  pro:      6_000_000,   // $6.00  (~₹500) — collected ₹999
+  max:     14_000_000,   // $14.00 (~₹1165) — collected ₹1999
 };
 
 // ── Rough token estimator (when API doesn't return token count) ───────────────
