@@ -59,7 +59,8 @@ export function initSettings() {
 
 // ── SettingsModal Component ───────────────────────────────────
 export default function SettingsModal({ onClose, onUpgrade }) {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
+  const token = localStorage.getItem("token"); // stored by auth system
   const [theme,    setTheme]    = useState(localStorage.getItem("rk-theme")    || "system");
   const [fontSize, setFontSize] = useState(localStorage.getItem("rk-fontsize") || "medium");
   const [saved,    setSaved]    = useState(false);
@@ -79,16 +80,23 @@ export default function SettingsModal({ onClose, onUpgrade }) {
   };
 
   const deleteAll = async () => {
-    if (!window.confirm("Delete ALL conversations? This cannot be undone.")) return;
+    if (!window.confirm("Delete ALL your conversations? This cannot be undone.\n\nNote: Shared AI knowledge cache is preserved for all users.")) return;
     setDeleting(true);
     try {
-      await fetch(`${API}/api/conversations/all`, {
+      const res = await fetch(`${API}/api/conversations/all`, {
         method:  "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Server error ${res.status}`);
+      }
+      const data = await res.json();
+      console.log(`🗑️ Deleted ${data.deleted} conversations`);
       window.location.reload();
     } catch (e) {
-      alert("Failed to delete conversations. Please try again.");
+      console.error("Delete all error:", e);
+      alert("Failed to delete conversations: " + e.message);
     } finally {
       setDeleting(false);
     }

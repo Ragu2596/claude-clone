@@ -87,14 +87,39 @@ router.patch('/:id', authenticate, async (req, res) => {
   }
 });
 
-// DELETE /api/conversations/all — delete ALL conversations for the user
+// DELETE /api/conversations/all — delete ALL conversations for THIS user only
 // ⚠️ Must be defined BEFORE /:id route to avoid "all" being treated as an id
+// ✅ Only deletes Conversation + Message rows for this user
+// ✅ KnowledgeCache is NEVER touched — shared across all users for cache hits
 router.delete('/all', authenticate, async (req, res) => {
   try {
-    const { count } = await prisma.conversation.deleteMany({
-      where: { userId: req.user.id },
+    const userId = req.user.id;
+
+    // Step 1: Get all conversation IDs for this user
+    const convIds = await prisma.conversation.findMany({
+      where:  { userId },
+      select: { id: true },
     });
-    console.log(`🗑️  Deleted all ${count} conversations for user ${req.user.id}`);
+    const ids = convIds.map(c => c.id);
+
+    if (ids.length === 0) {
+      return res.json({ success: true, deleted: 0 });
+    }
+
+    // Step 2: Delete messages in those conversations first (cascade safety)
+    await prisma.message.deleteMany({
+      where: { conversationId: { in: ids } },
+    });
+
+    // Step 3: Delete the conversations themselves
+    const { count } = await prisma.conversation.deleteMany({
+      where: { userId },
+    });
+
+    // ✅ KnowledgeCache is intentionally NOT deleted —
+    //    it is shared across all users and saves API costs globally
+
+    console.log(`🗑️  User ${userId}: deleted ${count} conversations + all their messages`);
     res.json({ success: true, deleted: count });
   } catch (e) {
     console.error('DELETE /conversations/all error:', e.message);
