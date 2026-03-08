@@ -67,12 +67,16 @@ import chatRoutes         from './routes/chat.js';
 import conversationRoutes from './routes/conversations.js';
 import projectRoutes      from './routes/projects.js';
 import paymentRoutes      from './routes/payment.js';
+import adminRoutes        from './routes/admin.js';       // 🆕 admin dashboard
+import modelsRoutes       from './routes/models.js';      // 🆕 auto model sync
 
 app.use('/auth',              authRoutes);
 app.use('/api/chat',          chatRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/projects',      projectRoutes);
 app.use('/payments',          paymentRoutes);
+app.use('/api/admin',         adminRoutes);               // 🆕
+app.use('/api/models',        modelsRoutes);              // 🆕
 
 // ── Health ────────────────────────────────────────────────────
 app.get('/health', (req, res) => res.json({
@@ -100,6 +104,5 @@ app.listen(PORT, () => {
   console.log(`   Gemini    : ${process.env.GEMINI_API_KEY       ? '✅' : '❌'}`);
   console.log(`   Razorpay  : ${process.env.RAZORPAY_KEY_ID      ? '✅' : '❌'}\n`);
 
-  // ✅ Start keep-alive pings to prevent Render cold starts
   startKeepAlive();
 });
