@@ -7,11 +7,24 @@ import { fileURLToPath } from 'url';
 import { authenticate } from '../middleware/auth.js';
 import { checkCache, storeInCache, getFlywheelStats } from '../services/knowledgeCache.js';
 import { logApiUsage, checkBudget, PLAN_BUDGETS } from '../services/costTracker.js';
+import { syncModels } from '../services/modelSync.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
 const router = express.Router();
 const prisma = new PrismaClient();
+
+// ── Daily model sync ──────────────────────────────────────────
+// Runs once on startup + every 24h to pick up new models
+let lastSync = 0;
+async function maybeSyncModels() {
+  const now = Date.now();
+  if (now - lastSync > 24 * 60 * 60 * 1000) {
+    lastSync = now;
+    syncModels().catch(e => console.error('⚠️ Model sync error:', e.message));
+  }
+}
+maybeSyncModels();
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const uploadsDir = join(__dirname, '..', '..', process.env.UPLOAD_DIR || 'uploads');
 
@@ -64,7 +77,17 @@ const RATE_LIMITS = {
   max:     { hourly: 500, daily: 9999,  weekly: 99999 },
 };
 
-function selectModel(requested) {
+// DB-backed model lookup (falls back to static if DB empty)
+async function selectModel(requested) {
+  try {
+    const { PrismaClient } = await import('@prisma/client');
+    const p = new PrismaClient();
+    const m = await p.modelConfig.findFirst({
+      where: { modelId: requested === 'auto' ? undefined : requested, enabled: true },
+    });
+    if (m) return { provider: m.provider, id: m.modelId, requiredPlan: m.requiredPlan, free: !m.requiredPlan };
+  } catch {}
+  // fallback to static
   return MODELS[requested] || MODELS['auto'];
 }
 
@@ -334,7 +357,7 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
     }
 
     // Step 4: Enforce model access by plan
-    let chosenModel = selectModel(requestedModel);
+    let chosenModel = await selectModel(requestedModel);
     if (!planAllowsModel(chosenModel, userPlan)) {
       console.log(`🔒 Model ${requestedModel} requires ${chosenModel.requiredPlan}, user has ${userPlan} — falling back to auto`);
       chosenModel = MODELS['auto'];

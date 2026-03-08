@@ -672,7 +672,9 @@ function Sidebar({ conversations, projects, activeId, activeProjectId, selectCon
             <p style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.name}</p>
             <p style={{ fontSize: 11, color: "var(--text3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.email}</p>
           </div>
-          <ChevronDown size={13} />
+          <div style={{ transform: showMenu ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s ease", display: "flex" }}>
+            <ChevronDown size={13} />
+          </div>
         </button>
       </div>
 
@@ -1025,28 +1027,45 @@ function Message({ msg, isLast, streaming, onArtifact, onRetry, onEdit }) {
 }
 
 // ─── Model Selector ───────────────────────────────────────────
+// Models loaded from API (auto-updated when new models release)
 const MODELS = [
-  { id: "auto",                      label: "Auto",               sub: "Best free model",        badge: "AUTO", color: "#6b7280", group: "auto"       },
-  { id: "llama-3.3-70b-versatile",   label: "Llama 3.3 70B",     sub: "Free · Fast",            badge: "FREE", color: "#16a34a", group: "groq"       },
-  { id: "mixtral-8x7b-32768",        label: "Mixtral 8x7B",      sub: "Free · Efficient",       badge: "FREE", color: "#16a34a", group: "groq"       },
-  { id: "gemini-2.0-flash",          label: "Gemini 2.0 Flash",  sub: "Free · Google",          badge: "FREE", color: "#4285f4", group: "gemini"     },
-  { id: "gemini-1.5-flash",          label: "Gemini 1.5 Flash",  sub: "Free · Google",          badge: "FREE", color: "#4285f4", group: "gemini"     },
-  { id: "gemini-1.5-pro",            label: "Gemini 1.5 Pro",    sub: "Free · Google",          badge: "FREE", color: "#4285f4", group: "gemini"     },
-  { id: "mistral-small",             label: "Mistral Small",     sub: "Free · Fast · Europe",   badge: "FREE", color: "#f97316", group: "mistral"    },
-  { id: "mistral-large",             label: "Mistral Large",     sub: "Free · Smart · Europe",  badge: "FREE", color: "#f97316", group: "mistral"    },
-  { id: "together-llama",            label: "Llama 4 Maverick",  sub: "Free · Together AI",     badge: "FREE", color: "#8b5cf6", group: "together"   },
-  { id: "together-deepseek",         label: "DeepSeek V3",       sub: "Free · Together AI",     badge: "FREE", color: "#8b5cf6", group: "together"   },
-  { id: "together-qwen",             label: "Qwen 2.5 72B",      sub: "Free · Together AI",     badge: "FREE", color: "#8b5cf6", group: "together"   },
-  { id: "perplexity-online",         label: "Perplexity Online", sub: "Live web search",        badge: "WEB",  color: "#06b6d4", group: "perplexity" },
-  { id: "gpt-4o-mini",               label: "GPT-4o Mini",       sub: "Fast · OpenAI",          badge: "GPT",  color: "#10a37f", group: "openai"     },
-  { id: "gpt-4o",                    label: "GPT-4o",            sub: "Smart · OpenAI",         badge: "GPT",  color: "#10a37f", group: "openai"     },
-  { id: "claude-haiku-4-5-20251001", label: "Claude Haiku",      sub: "Fast · Anthropic",       badge: "PRO",  color: "#f59e0b", group: "anthropic"  },
-  { id: "claude-sonnet-4-20250514",  label: "Claude Sonnet 4",   sub: "Best · Anthropic",       badge: "TOP",  color: "#8b5cf6", group: "anthropic"  },
+  { id: "auto", label: "Auto", sub: "Best model · Auto pick", badge: "AUTO", color: "#6b7280", group: "auto" },
 ];
+
+// ── Hook: fetch live model list from backend ──────────────────
+function useModels() {
+  const [models, setModels] = useState(MODELS);
+  const API = import.meta.env.VITE_API_URL;
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    fetch(`${API}/api/models`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(data => {
+        if (!Array.isArray(data) || data.length === 0) return;
+        // Auto group → always first
+        const autoModel = { id: "auto", label: "Auto", sub: "Best model · Auto pick", badge: "AUTO", color: "#6b7280", group: "auto" };
+        const mapped = data.map(m => ({
+          id:    m.modelId,
+          label: m.displayName,
+          sub:   m.badge === 'FREE' ? `Free · ${m.provider}` : m.requiredPlan ? `${m.requiredPlan} · ${m.provider}` : m.provider,
+          badge: m.badge,
+          color: m.color,
+          group: m.group,
+          isNew: m.isNew,
+        }));
+        setModels([autoModel, ...mapped]);
+      })
+      .catch(() => {}); // silently use default on error
+  }, []);
+
+  return models;
+}
 const GROUP_LABELS = {
   auto: null, groq: "🆓 Free · Groq", gemini: "🆓 Free · Google Gemini",
   mistral: "🆓 Free · Mistral AI", together: "🆓 Free · Together AI",
-  perplexity: "🌐 Web Search · Perplexity", openai: "💚 ChatGPT · OpenAI", anthropic: "🟠 Claude · Anthropic",
+  perplexity: "🌐 Web Search", openai: "💚 Speed Models", anthropic: "🟠 Power Models",
 };
 const GROUP_ORDER = ["auto", "groq", "gemini", "mistral", "together", "perplexity", "openai", "anthropic"];
 

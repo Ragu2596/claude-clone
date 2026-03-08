@@ -145,3 +145,22 @@ model CacheStats {
 
   @@index([date])
 }
+
+// ── Auto-discovered model registry ───────────────────────────
+model ModelConfig {
+  id           String   @id @default(uuid())
+  modelId      String   @unique   // actual API model id
+  provider     String             // groq | openai | anthropic | gemini | mistral | together | perplexity
+  group        String             // for frontend grouping
+  displayName  String             // unique rk.ai name e.g. "Apex"
+  badge        String   @default("FREE")
+  color        String   @default("#6b7280")
+  requiredPlan String?            // null=free, starter, pro, max
+  enabled      Boolean  @default(true)
+  isNew        Boolean  @default(true)  // shows NEW badge for 7 days
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([provider])
+  @@index([enabled])
+}

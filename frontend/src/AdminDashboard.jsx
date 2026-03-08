@@ -111,6 +111,126 @@ function UserModal({ user, onClose }) {
 }
 
 // ── Main Dashboard ─────────────────────────────────────────────
+// ── Model Manager Modal ───────────────────────────────────────
+function ModelManager({ onClose }) {
+  const [models,   setModels]   = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [syncing,  setSyncing]  = useState(false);
+  const [editId,   setEditId]   = useState(null);
+  const [editName, setEditName] = useState("");
+
+  const load = async () => {
+    setLoading(true);
+    const data = await apiFetch("/api/models");
+    setModels(Array.isArray(data) ? data : []);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const sync = async () => {
+    setSyncing(true);
+    const res = await apiFetch("/api/models/sync");
+    // POST needs different fetch
+    const r = await fetch(`${API}/api/models/sync`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token()}`, "Content-Type": "application/json" },
+    }).then(r => r.json());
+    setSyncing(false);
+    alert(`✅ Sync done — ${r.newCount || 0} new models found`);
+    load();
+  };
+
+  const saveName = async (id) => {
+    await fetch(`${API}/api/models/${id}`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token()}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ displayName: editName }),
+    });
+    setEditId(null);
+    load();
+  };
+
+  const toggle = async (id, enabled) => {
+    await fetch(`${API}/api/models/${id}`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token()}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled: !enabled }),
+    });
+    load();
+  };
+
+  const planColors = { null: "#16a34a", starter: "#3b82f6", pro: "#8b5cf6", max: "#f59e0b" };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 600, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+      onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{ background: "#faf8f5", borderRadius: 18, width: "100%", maxWidth: 720, maxHeight: "90vh", overflowY: "auto", padding: 28, boxShadow: "0 24px 60px rgba(0,0,0,0.2)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <div>
+            <h2 style={{ fontSize: 18, fontWeight: 800, color: "#1e1b18" }}>🤖 Model Manager</h2>
+            <p style={{ fontSize: 13, color: "#94a3b8", marginTop: 2 }}>Auto-discovers new models daily. Rename or disable any model.</p>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={sync} disabled={syncing} style={{ padding: "8px 16px", background: syncing ? "#e5e7eb" : "#c96442", border: "none", borderRadius: 9, color: syncing ? "#aaa" : "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+              {syncing ? "⟳ Syncing..." : "↻ Sync Now"}
+            </button>
+            <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 22, color: "#aaa", cursor: "pointer" }}>✕</button>
+          </div>
+        </div>
+
+        {loading ? (
+          <p style={{ textAlign: "center", color: "#aaa", padding: 40 }}>Loading models...</p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {models.map(m => (
+              <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: m.enabled ? "#fff" : "#f9fafb", border: "1px solid #e8e2da", borderRadius: 10, opacity: m.enabled ? 1 : 0.5 }}>
+                {/* Color dot */}
+                <div style={{ width: 10, height: 10, borderRadius: "50%", background: m.color, flexShrink: 0 }} />
+
+                {/* Name (editable) */}
+                <div style={{ flex: 1 }}>
+                  {editId === m.id ? (
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <input value={editName} onChange={e => setEditName(e.target.value)}
+                        style={{ padding: "4px 8px", border: "1px solid #c96442", borderRadius: 6, fontSize: 13, outline: "none", flex: 1 }}
+                        onKeyDown={e => e.key === "Enter" && saveName(m.id)} autoFocus />
+                      <button onClick={() => saveName(m.id)} style={{ padding: "4px 10px", background: "#c96442", border: "none", borderRadius: 6, color: "#fff", fontSize: 12, cursor: "pointer" }}>Save</button>
+                      <button onClick={() => setEditId(null)} style={{ padding: "4px 8px", background: "none", border: "1px solid #e8e2da", borderRadius: 6, fontSize: 12, cursor: "pointer" }}>✕</button>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "#1e1b18" }}>{m.displayName}</span>
+                      {m.isNew && <span style={{ fontSize: 10, background: "#dcfce7", color: "#16a34a", borderRadius: 99, padding: "1px 7px", fontWeight: 700 }}>NEW</span>}
+                      <button onClick={() => { setEditId(m.id); setEditName(m.displayName); }}
+                        style={{ background: "none", border: "none", color: "#aaa", cursor: "pointer", fontSize: 13, padding: 0 }}>✏️</button>
+                    </div>
+                  )}
+                  <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{m.modelId}</p>
+                </div>
+
+                {/* Provider badge */}
+                <span style={{ fontSize: 11, color: "#64748b", background: "#f1f5f9", borderRadius: 99, padding: "2px 8px", fontWeight: 600 }}>{m.provider}</span>
+
+                {/* Plan */}
+                <span style={{ fontSize: 11, fontWeight: 700, color: planColors[m.requiredPlan] || "#16a34a", background: (planColors[m.requiredPlan] || "#16a34a") + "15", borderRadius: 99, padding: "2px 8px", textTransform: "uppercase" }}>
+                  {m.requiredPlan || "FREE"}
+                </span>
+
+                {/* Toggle */}
+                <button onClick={() => toggle(m.id, m.enabled)}
+                  style={{ padding: "5px 12px", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", background: m.enabled ? "#dcfce7" : "#f1f5f9", color: m.enabled ? "#16a34a" : "#94a3b8" }}>
+                  {m.enabled ? "ON" : "OFF"}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const [summary,  setSummary]  = useState(null);
   const [users,    setUsers]    = useState([]);
@@ -120,6 +240,7 @@ export default function AdminDashboard() {
   const [filter,   setFilter]   = useState("all");   // "all"|"free"|"starter"|"pro"|"max"|"loss"
   const [sort,     setSort]     = useState("joined"); // "joined"|"revenue"|"cost"|"profit"
   const [selUser,  setSelUser]  = useState(null);
+  const [showModels, setShowModels] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(null);
 
   const load = useCallback(async () => {
@@ -183,7 +304,7 @@ export default function AdminDashboard() {
           <span style={{ fontSize: 22 }}>📊</span>
           <div>
             <p style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>rk.ai Admin</p>
-            <p style={{ fontSize: 11, color: "#94a3b8" }}>Revenue · Costs · Profit</p>
+            <p style={{ fontSize: 11, color: "#94a3b8" }}>Revenue · Costs · Models</p>
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -192,6 +313,9 @@ export default function AdminDashboard() {
               Updated {lastRefresh.toLocaleTimeString()}
             </span>
           )}
+          <button onClick={() => setShowModels(true)} style={{ padding: "7px 16px", background: "#374151", border: "none", borderRadius: 8, color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+            🤖 Models
+          </button>
           <button onClick={load} disabled={loading} style={{ padding: "7px 16px", background: loading ? "#374151" : "#c96442", border: "none", borderRadius: 8, color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
             {loading ? "⟳" : "↻ Refresh"}
           </button>
@@ -378,6 +502,7 @@ export default function AdminDashboard() {
       </div>
 
       {selUser && <UserModal user={selUser} onClose={() => setSelUser(null)} />}
+      {showModels && <ModelManager onClose={() => setShowModels(false)} />}
     </div>
   );
 }
