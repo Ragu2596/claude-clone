@@ -1057,7 +1057,7 @@ function useModels() {
         }));
         setModels([autoModel, ...mapped]);
       })
-      .catch(() => {}); // silently use default on error
+      .catch(e => console.warn("⚠️ Models fetch failed:", e.message));
   }, []);
 
   return models;
@@ -1072,7 +1072,8 @@ const GROUP_ORDER = ["auto", "groq", "gemini", "mistral", "together", "perplexit
 function ModelSelector({ value, onChange }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
-  const current = MODELS.find(m => m.id === value) || MODELS[0];
+  const models = useModels();                                    // ✅ live from DB
+  const current = models.find(m => m.id === value) || models[0];
 
   useEffect(() => {
     const h = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
@@ -1080,7 +1081,7 @@ function ModelSelector({ value, onChange }) {
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  const grouped = MODELS.reduce((acc, m) => {
+  const grouped = models.reduce((acc, m) => {                   // ✅ use live models
     if (!acc[m.group]) acc[m.group] = [];
     acc[m.group].push(m);
     return acc;
