@@ -191,8 +191,23 @@ function getStaticModels() {
 }
 
 // ── Main sync function ────────────────────────────────────────
+const ALL_EXCLUDED = [
+  'llama-guard-4-12b', 'llama-guard-3-8b',
+  'llama-prompt-guard-2-22m', 'llama-prompt-guard-2-86m',
+  'whisper-large-v3', 'whisper-large-v3-turbo',
+];
+
 export async function syncModels() {
   console.log('🔄 Syncing models from all providers...');
+
+  // Disable any guard/safety/audio models already in DB — they must never be used for chat
+  try {
+    const disabled = await prisma.modelConfig.updateMany({
+      where:  { modelId: { in: ALL_EXCLUDED } },
+      data:   { enabled: false },
+    });
+    if (disabled.count > 0) console.log(`🚫 Disabled ${disabled.count} non-chat models (guard/whisper)`);
+  } catch (e) { console.warn('Could not disable guard models:', e.message); }
 
   const [groqModels, openaiModels, anthropicModels] = await Promise.all([
     fetchGroqModels(),

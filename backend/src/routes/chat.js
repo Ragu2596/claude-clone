@@ -117,12 +117,24 @@ const MODEL_DAILY_LIMITS = {
 };
 
 // DB-backed model lookup (falls back to static if DB empty)
+// Models that are NOT for chat — exclude from selection always
+const EXCLUDED_MODELS = [
+  'llama-guard-4-12b', 'llama-guard-3-8b',
+  'llama-prompt-guard-2-22m', 'llama-prompt-guard-2-86m',
+  'whisper-large-v3', 'whisper-large-v3-turbo',  // audio models
+];
+
 async function selectModel(requested) {
   try {
     const { PrismaClient } = await import('@prisma/client');
     const p = new PrismaClient();
     const m = await p.modelConfig.findFirst({
-      where: { modelId: requested === 'auto' ? undefined : requested, enabled: true },
+      where: {
+        modelId:  requested === 'auto' ? undefined : requested,
+        enabled:  true,
+        // Never select guard/safety/audio models for chat
+        NOT: { modelId: { in: EXCLUDED_MODELS } },
+      },
     });
     if (m) return { provider: m.provider, id: m.modelId, requiredPlan: m.requiredPlan, free: !m.requiredPlan };
   } catch {}

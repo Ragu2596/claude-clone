@@ -1445,20 +1445,19 @@ function LoadingScreen() {
 
 // ─── App ──────────────────────────────────────────────────────
 export default function App() {
-  // ── Admin route (hash-based — works on any host with no server config) ──
-  // Admin route — only allow if logged in AND email matches
+  const { user, loading } = useAuth();
+
+  // ── Admin route — AFTER user is loaded ───────────────────────
   const ADMIN_EMAIL = "ragunath2596@gmail.com";
   if (window.location.hash === '#/admin') {
-    if (!user) return <AuthPage />;  // not logged in → show login
-    if (user.email !== ADMIN_EMAIL) {
-      // Wrong user — redirect to home silently
+    if (loading) return <LoadingScreen />;          // wait for auth to load
+    if (!user)   return <AuthPage />;               // not logged in → login page
+    if (user.email !== ADMIN_EMAIL) {               // wrong user → go home
       window.location.hash = '';
       return null;
     }
-    return <AdminDashboard />;
+    return <AdminDashboard />;                      // ✅ correct admin user
   }
-
-  const { user, loading } = useAuth();
   const [showPricing,  setShowPricing]  = useState(false);
   const [sidebarOpen,  setSidebarOpen]  = useState(false);
   const isMobile = useIsMobile();
