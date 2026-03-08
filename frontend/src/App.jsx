@@ -1388,8 +1388,8 @@ function LoadingScreen() {
 
 // ─── App ──────────────────────────────────────────────────────
 export default function App() {
-  // ── Admin route ───────────────────────────────────────────────
-  if (window.location.pathname === '/admin') return <AdminDashboard />;
+  // ── Admin route (hash-based — works on any host with no server config) ──
+  if (window.location.hash === '#/admin') return <AdminDashboard />;
 
   const { user, loading } = useAuth();
   const [showPricing,  setShowPricing]  = useState(false);
