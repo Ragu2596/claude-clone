@@ -1,217 +1,312 @@
+// backend/src/services/knowledgeCache.js
+//
+// ─── FLYWHEEL / KNOWLEDGE CACHE ──────────────────────────────────────────────
+//
+// HOW IT WORKS:
+//   1. User sends a message
+//   2. We normalize + hash the question
+//   3. Check DB for exact or near-match → if found, return cached answer FREE
+//   4. If not found → call paid AI API → stream response to user
+//   5. After streaming → save Q&A to DB for future users
+//   6. Next user who asks the same (or similar) thing → served from DB, zero cost
+//
+// RESULT: Every paid API call makes the next one cheaper
+//         More users = more cache hits = less API cost = more profit
+//
+// ─────────────────────────────────────────────────────────────────────────────
+
 import crypto from 'crypto';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Cost per 1K tokens (approx) for each model
-const MODEL_COSTS = {
-  'claude-sonnet-4-20250514':  0.003,
-  'claude-haiku-4-5-20251001': 0.00025,
-  'gpt-4o':                    0.005,
-  'gpt-4o-mini':               0.00015,
-  'gemini-2.0-flash':          0.0001,
-  'gemini-1.5-pro':            0.00125,
-  'llama-3.3-70b-versatile':   0.0,
-  'mixtral-8x7b-32768':        0.0,
-  'auto':                      0.002,
-};
+// ── How similar two strings need to be to count as a cache hit (0-1) ─────────
+const SIMILARITY_THRESHOLD = 0.82; // 82% similarity = cache hit
 
-/**
- * Normalize a question for consistent hashing:
- * - lowercase
- * - remove punctuation
- * - collapse whitespace
- * Only cache simple factual questions (not conversational context)
- */
-function normalizeQuestion(text) {
-  return text
+// ── Don't cache short/personal/file messages ─────────────────────────────────
+const MIN_QUESTION_LENGTH = 15;   // chars — too short = likely personal/unclear
+const MAX_QUESTION_LENGTH = 2000; // chars — very long = likely unique/personal
+
+// ── Normalize question for consistent hashing ─────────────────────────────────
+// Removes punctuation, extra spaces, lowercases, removes filler words
+function normalizeQuestion(q) {
+  return q
     .toLowerCase()
-    .replace(/[^\w\s]/g, ' ')
-    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/[?!.,;:'"()[\]{}\-]/g, ' ')  // remove punctuation
+    .replace(/\b(please|can you|could you|i want|i need|tell me|what is|what are|how do|how does|how to|explain|describe|give me|show me|help me|would you|will you)\b/g, '') // remove filler
+    .replace(/\s+/g, ' ')                   // collapse spaces
     .trim();
 }
 
+// ── Hash a normalized question ────────────────────────────────────────────────
 function hashQuestion(normalized) {
   return crypto.createHash('sha256').update(normalized).digest('hex');
 }
 
-/**
- * Estimate cost saved by serving from cache instead of API
- */
-function estimateCost(answer, model) {
-  const tokens = Math.ceil(answer.length / 4); // rough: 4 chars per token
-  const costPer1k = MODEL_COSTS[model] || 0.002;
-  return (tokens / 1000) * costPer1k;
+// ── Simple word-overlap similarity score (Jaccard similarity) ─────────────────
+// Fast, no ML needed, works well for factual questions
+function similarity(a, b) {
+  const wordsA = new Set(a.split(' ').filter(w => w.length > 2));
+  const wordsB = new Set(b.split(' ').filter(w => w.length > 2));
+  if (wordsA.size === 0 || wordsB.size === 0) return 0;
+
+  let intersection = 0;
+  for (const word of wordsA) {
+    if (wordsB.has(word)) intersection++;
+  }
+
+  const union = wordsA.size + wordsB.size - intersection;
+  return intersection / union;
 }
 
-/**
- * Check if question is cacheable:
- * - Single-turn (no personal context like "my", "I am", "remember")
- * - Not a file upload question
- * - Reasonably short question (< 500 chars)
- */
-function isCacheable(message, hasFile) {
-  if (hasFile) return false;
-  if (message.length > 500) return false;
+// ── Auto-detect topic from question ──────────────────────────────────────────
+function detectTopic(message) {
+  const m = message.toLowerCase();
+  if (/(code|function|bug|error|api|database|sql|python|javascript|react|node|css|html|git|deploy|docker|kubernetes|algorithm|array|object|class|component|hook|async|promise|typescript|java|cpp|rust|golang)/.test(m)) return 'coding';
+  if (/(math|equation|calculus|algebra|geometry|statistics|probability|integral|derivative|matrix|vector|formula|calculate|solve|proof)/.test(m)) return 'math';
+  if (/(write|essay|email|letter|story|poem|grammar|paragraph|summarize|translate|explain|describe|content|blog|report|document)/.test(m)) return 'writing';
+  if (/(science|physics|chemistry|biology|medical|health|disease|evolution|astronomy|quantum|atom|molecule|experiment|research)/.test(m)) return 'science';
+  if (/(history|politics|economy|business|finance|investment|startup|marketing|management|strategy|legal|law)/.test(m)) return 'business';
+  if (/(ai|machine learning|neural network|llm|gpt|model|training|dataset|nlp|computer vision|deep learning)/.test(m)) return 'ai';
+  return 'general';
+}
 
-  // Don't cache personal/contextual questions
-  const personalPatterns = [
-    /\b(my|mine|i am|i'm|i have|i've|i was|i need|i want|tell me about me|our|we are|we have)\b/i,
-    /\b(above|previous|earlier|last message|you said|you told)\b/i,
-    /\b(continue|follow up|also|furthermore|additionally)\b/i,
+// ── Score answer quality 0-1 ──────────────────────────────────────────────────
+// Higher score = better answer = serve more confidently from cache
+function scoreQuality(question, answer) {
+  if (!answer || answer.length < 50)  return 0.1; // too short
+  if (answer.length > 200)            return 0.6; // decent length base score
+
+  let score = 0.5;
+  // Rewards
+  if (answer.length > 500)                                    score += 0.1;  // detailed
+  if (answer.includes('```'))                                 score += 0.1;  // has code
+  if (/[0-9]/.test(answer))                                   score += 0.05; // has numbers
+  if (answer.split('\n').length > 3)                          score += 0.05; // structured
+  if (/example|for instance|such as/i.test(answer))          score += 0.05; // has examples
+  // Penalties
+  if (/i (don't|cannot|can't) know/i.test(answer))           score -= 0.3;  // uncertain
+  if (/i'm not sure/i.test(answer))                           score -= 0.2;
+  if (/as an ai/i.test(answer))                               score -= 0.1;  // meta
+
+  return Math.max(0.1, Math.min(1.0, score));
+}
+
+// ── Should we cache this message? ─────────────────────────────────────────────
+function isCacheable(message, hasFile) {
+  if (hasFile)                              return false; // files = unique context
+  if (message.length < MIN_QUESTION_LENGTH) return false; // too short
+  if (message.length > MAX_QUESTION_LENGTH) return false; // too long/personal
+
+  const lower = message.toLowerCase();
+
+  // Personal/context-specific patterns — never cache these
+  const personal = [
+    'my ', 'i am', "i'm", 'my name', 'my email', 'my account', 'my plan',
+    'my project', 'my code', 'my app', 'my file', 'my data', 'fix my',
+    'this code', 'this file', 'this error', 'above code', 'above text',
+    'you said', 'you told', 'earlier you', 'continue', 'as i mentioned',
   ];
-  for (const p of personalPatterns) {
-    if (p.test(message)) return false;
-  }
+  if (personal.some(p => lower.includes(p))) return false;
+
+  // Only cache factual/knowledge questions
+  const cacheable = [
+    'what is', 'what are', 'how does', 'how do', 'how to', 'explain',
+    'difference between', 'define', 'example of', 'what does', 'why is',
+    'why does', 'when did', 'when was', 'who is', 'who was', 'which is',
+    'what happens', 'how many', 'what causes', 'benefits of', 'advantages of',
+    'disadvantages of', 'compare', 'vs ', 'versus', 'best way to', 'steps to',
+    'history of', 'meaning of', 'types of',
+  ];
+  if (!cacheable.some(p => lower.includes(p))) return false;
 
   return true;
 }
 
-/**
- * DB FIRST: Check cache before calling API
- * Returns cached answer or null
- */
+// ─── CHECK CACHE ──────────────────────────────────────────────────────────────
+// Returns cached answer string if found, null if not
 export async function checkCache(message, hasFile = false) {
-  if (!isCacheable(message, hasFile)) {
-    return null;
-  }
-
-  const normalized = normalizeQuestion(message);
-  const hash = hashQuestion(normalized);
-
   try {
-    const cached = await prisma.knowledgeCache.findUnique({
-      where: { questionHash: hash }
+    if (!isCacheable(message, hasFile)) return null;
+
+    const normalized = normalizeQuestion(message);
+    const hash       = hashQuestion(normalized);
+
+    // 1. Exact hash match (fastest — O(1) index lookup)
+    const exact = await prisma.knowledgeCache.findUnique({
+      where: { questionHash: hash },
     });
 
-    if (cached) {
-      // Increment hit count and update stats
-      const cost = estimateCost(cached.answer, cached.model);
+    if (exact) {
+      // Update hit count and saved cost estimate
       await prisma.knowledgeCache.update({
-        where: { id: cached.id },
-        data: {
-          hitCount:  { increment: 1 },
-          savedCost: { increment: cost },
-        }
+        where: { id: exact.id },
+        data:  { hitCount: { increment: 1 }, updatedAt: new Date() },
       });
-
-      // Update daily stats
-      await updateDailyStats({ hit: true, cost });
-
-      console.log(`⚡ CACHE HIT [${hash.slice(0,8)}] hitCount=${cached.hitCount + 1} saved=$${cost.toFixed(4)}`);
-      return cached.answer;
+      await trackCacheHit(true);
+      console.log(`⚡ Cache HIT (exact) — saved ~$0.004 | hits=${exact.hitCount + 1} | "${message.slice(0, 50)}"`);
+      return exact.answer;
     }
 
-    return null;
+    // 2. Fuzzy match — check recent 500 entries for similar questions
+    // Only runs when no exact match found
+    const recent = await prisma.knowledgeCache.findMany({
+      take:    500,
+      orderBy: { hitCount: 'desc' }, // most popular first = better cache hits
+      select:  { id: true, question: true, answer: true, hitCount: true },
+    });
+
+    for (const entry of recent) {
+      const entryNorm  = normalizeQuestion(entry.question);
+      const score      = similarity(normalized, entryNorm);
+
+      if (score >= SIMILARITY_THRESHOLD) {
+        await prisma.knowledgeCache.update({
+          where: { id: entry.id },
+          data:  { hitCount: { increment: 1 }, updatedAt: new Date() },
+        });
+        await trackCacheHit(true);
+        console.log(`⚡ Cache HIT (fuzzy ${Math.round(score * 100)}%) — "${message.slice(0, 50)}"`);
+        return entry.answer;
+      }
+    }
+
+    await trackCacheHit(false);
+    return null; // cache miss — will call AI API
+
   } catch (e) {
     console.error('Cache check error:', e.message);
-    return null; // fail silently, fall through to API
+    return null; // on error, always proceed to AI (fail safe)
   }
 }
 
-/**
- * API LAST: After getting API response, store in DB forever
- */
-export async function storeInCache(message, answer, model, hasFile = false) {
-  if (!isCacheable(message, hasFile)) return;
-  if (!answer || answer.length < 20) return;
-
-  const normalized = normalizeQuestion(message);
-  const hash = hashQuestion(normalized);
-  const cost = estimateCost(answer, model);
-
+// ─── STORE IN CACHE ───────────────────────────────────────────────────────────
+// Called AFTER AI responds — saves Q&A for future users
+export async function storeInCache(message, answer, modelId = 'unknown', hasFile = false) {
   try {
+    if (!isCacheable(message, hasFile)) return; // don't cache personal/short messages
+    if (!answer || answer.length < 20)  return; // don't cache empty/error responses
+
+    const normalized = normalizeQuestion(message);
+    const hash       = hashQuestion(normalized);
+
+    // upsert — if same hash exists (race condition), just update
+    const topic   = detectTopic(message);
+    const quality  = scoreQuality(message, answer);
+
     await prisma.knowledgeCache.upsert({
-      where: { questionHash: hash },
+      where:  { questionHash: hash },
       create: {
         questionHash: hash,
-        question: message.slice(0, 2000),
-        answer,
-        model,
-        hitCount:  1,
-        savedCost: 0,
+        question:     message.slice(0, 2000),
+        answer:       answer.slice(0, 8000),
+        model:        modelId,
+        topic,
+        quality,
+        hitCount:     1,
+        savedCost:    0,
       },
       update: {
-        answer,           // update if answer improved
-        model,
+        // Only replace answer if new quality is higher
+        ...(quality > 0.6 ? { answer: answer.slice(0, 8000), quality, model: modelId } : {}),
         updatedAt: new Date(),
-      }
+      },
     });
 
-    // Update daily stats - this was an API miss
-    await updateDailyStats({ hit: false, cost: 0 });
+    const cacheSize = await prisma.knowledgeCache.count();
+    console.log(`💾 Cached Q&A | model=${modelId} | total=${cacheSize} | "${message.slice(0, 50)}"`);
 
-    console.log(`💾 CACHED [${hash.slice(0,8)}] model=${model} len=${answer.length}`);
   } catch (e) {
     console.error('Cache store error:', e.message);
+    // Non-critical — user already got their answer, don't throw
   }
 }
 
-async function updateDailyStats({ hit, cost }) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
+// ─── TRACK HIT/MISS IN DAILY STATS ───────────────────────────────────────────
+async function trackCacheHit(isHit) {
   try {
-    const existing = await prisma.cacheStats.findFirst({
-      where: { date: { gte: today } }
-    });
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    if (existing) {
-      await prisma.cacheStats.update({
-        where: { id: existing.id },
-        data: {
-          totalHits:   hit ? { increment: 1 } : undefined,
-          totalMisses: !hit ? { increment: 1 } : undefined,
-          costSaved:   hit ? { increment: cost } : undefined,
-        }
-      });
-    } else {
-      await prisma.cacheStats.create({
-        data: {
-          totalHits:   hit ? 1 : 0,
-          totalMisses: hit ? 0 : 1,
-          costSaved:   hit ? cost : 0,
-        }
-      });
-    }
-  } catch (e) {
-    // non-critical
-  }
+    await prisma.cacheStats.upsert({
+      where:  { date: today },
+      create: { date: today, totalHits: isHit ? 1 : 0, totalMisses: isHit ? 0 : 1 },
+      update: isHit
+        ? { totalHits:   { increment: 1 } }
+        : { totalMisses: { increment: 1 } },
+    });
+  } catch (_) {} // non-critical
 }
 
-/**
- * Get flywheel stats for dashboard
- */
+// ─── FLYWHEEL STATS ───────────────────────────────────────────────────────────
+// Called by GET /api/chat/flywheel-stats (admin dashboard)
 export async function getFlywheelStats() {
   try {
-    const [totalCached, totalHits, totalSaved, topQuestions, recentStats] = await Promise.all([
+    const [totalEntries, topHits, stats7d, recentMisses] = await Promise.all([
+
+      // Total cached Q&As
       prisma.knowledgeCache.count(),
-      prisma.knowledgeCache.aggregate({ _sum: { hitCount: true } }),
-      prisma.knowledgeCache.aggregate({ _sum: { savedCost: true } }),
+
+      // Top 5 most reused answers
       prisma.knowledgeCache.findMany({
+        take:    5,
         orderBy: { hitCount: 'desc' },
-        take: 5,
-        select: { question: true, hitCount: true, model: true }
+        select:  { question: true, hitCount: true, model: true, createdAt: true },
       }),
+
+      // Last 7 days hit/miss stats
       prisma.cacheStats.findMany({
+        take:    7,
         orderBy: { date: 'desc' },
-        take: 7,
-      })
+        select:  { date: true, totalHits: true, totalMisses: true },
+      }),
+
+      // Last 10 cache misses (questions not yet cached = opportunities)
+      prisma.knowledgeCache.findMany({
+        take:    10,
+        orderBy: { createdAt: 'desc' },
+        where:   { hitCount: 1 }, // only seen once = fresh misses
+        select:  { question: true, createdAt: true, model: true },
+      }),
     ]);
 
-    const hits   = totalHits._sum.hitCount || 0;
-    const misses = recentStats.reduce((a, s) => a + s.totalMisses, 0);
-    const hitRate = hits + misses > 0 ? Math.round((hits / (hits + misses)) * 100) : 0;
+    const totalHits   = stats7d.reduce((s, d) => s + d.totalHits,   0);
+    const totalMisses = stats7d.reduce((s, d) => s + d.totalMisses, 0);
+    const hitRate     = totalHits + totalMisses > 0
+      ? Math.round((totalHits / (totalHits + totalMisses)) * 100)
+      : 0;
+
+    // Estimated savings: avg $0.004 per cache hit (mid-tier model cost)
+    const estimatedSavings = (totalHits * 0.004).toFixed(2);
 
     return {
-      totalCached,
-      totalHits: hits,
-      totalSavedUSD: (totalSaved._sum.savedCost || 0).toFixed(4),
-      hitRate,
-      topQuestions,
-      recentStats,
+      totalEntries,
+      hitRate,        // % of requests served from cache
+      totalHits,
+      totalMisses,
+      estimatedSavings, // $ saved in last 7 days
+      topHits:  topHits.map(h => ({
+        question: h.question.slice(0, 80),
+        hitCount: h.hitCount,
+        model:    h.model,
+      })),
+      dailyStats: stats7d.reverse().map(d => ({
+        date:   d.date,
+        hits:   d.totalHits,
+        misses: d.totalMisses,
+        rate:   d.totalHits + d.totalMisses > 0
+          ? Math.round((d.totalHits / (d.totalHits + d.totalMisses)) * 100)
+          : 0,
+      })),
+      recentMisses: recentMisses.map(m => ({
+        question: m.question.slice(0, 80),
+        model:    m.model,
+        at:       m.createdAt,
+      })),
     };
   } catch (e) {
-    return { error: e.message };
+    console.error('Flywheel stats error:', e.message);
+    return { totalEntries: 0, hitRate: 0, totalHits: 0, totalMisses: 0 };
   }
 }

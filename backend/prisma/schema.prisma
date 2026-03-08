@@ -122,20 +122,48 @@ model Message {
   @@index([modelUsed, createdAt])
 }
 
+// ── rk.ai Knowledge Engine ───────────────────────────────────
+// This is rk.ai's core competitive moat.
+// Every API call builds this DB. Over time rk.ai serves from
+// its own knowledge — independent of any external provider.
+
 model KnowledgeCache {
   id           String   @id @default(uuid())
-  questionHash String   @unique
-  question     String   @db.Text
-  answer       String   @db.Text
-  model        String
-  hitCount     Int      @default(1)
-  savedCost    Float    @default(0)
+  questionHash String   @unique          // sha256 of normalized question
+  question     String   @db.Text         // original question
+  answer       String   @db.Text         // best answer so far
+  model        String                    // which model generated it
+  topic        String   @default("general") // coding|math|writing|science|general
+  language     String   @default("en")   // response language
+  hitCount     Int      @default(1)      // times served from cache
+  quality      Float    @default(0.5)    // auto-scored 0-1 (answer quality)
+  verified     Boolean  @default(false)  // manually verified by admin
+  savedCost    Float    @default(0)      // cumulative $ saved by caching
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  feedbacks    UserFeedback[]            // thumbs up/down from users
+
   @@index([questionHash])
   @@index([hitCount])
+  @@index([topic])
+  @@index([quality])
   @@index([createdAt])
+}
+
+// User feedback on cached answers — improves quality over time
+model UserFeedback {
+  id         String         @id @default(uuid())
+  cacheId    String
+  userId     String
+  rating     Int            // 1 = thumbs up, -1 = thumbs down
+  createdAt  DateTime       @default(now())
+
+  cache      KnowledgeCache @relation(fields: [cacheId], references: [id], onDelete: Cascade)
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([cacheId, userId])  // one vote per user per answer
+  @@index([cacheId])
 }
 
 model CacheStats {
