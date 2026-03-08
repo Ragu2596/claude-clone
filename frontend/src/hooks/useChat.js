@@ -11,8 +11,9 @@ export function useChat() {
   const [streaming,        setStreaming]        = useState(false);
   const [projects,         setProjects]         = useState([]);
   const [activeProjectId,  setActiveProjectId]  = useState(null);
-  const [usage,            setUsage]            = useState(null);       // ✅ NEW: { count, limit, plan }
-  const [upgradeRequired,  setUpgradeRequired]  = useState(false);     // ✅ NEW: file upload blocked
+  const [usage,            setUsage]            = useState(null);       // ✅ { hourCount, dayCount, weekCount, ...limits, plan }
+  const [rateLimit,        setRateLimit]        = useState(null);       // ✅ { window, retryAt, ... } when blocked
+  const [upgradeRequired,  setUpgradeRequired]  = useState(false);     // ✅ file upload blocked
 
   const abortRef    = useRef(null);
   const activeIdRef = useRef(null);
@@ -145,9 +146,28 @@ export function useChat() {
           throw new Error(err.error || "File uploads require Starter plan or above.");
         }
 
-        // ✅ Daily limit reached — update usage bar
-        if (err.limitReached && err.count !== undefined) {
-          setUsage({ count: err.count, limit: err.limit, plan: err.plan });
+        // ✅ Rate limit hit — store full rate limit info for UI
+        if (err.limitReached) {
+          setRateLimit({
+            window:    err.window,
+            count:     err.count,
+            limit:     err.limit,
+            retryAt:   err.retryAt ? new Date(err.retryAt) : null,
+            dayCount:  err.dayCount,
+            dayLimit:  err.dayLimit,
+            weekCount: err.weekCount,
+            weekLimit: err.weekLimit,
+            plan:      err.plan,
+          });
+          setUsage({
+            hourCount: err.window === 'hourly' ? err.count : err.dayCount,
+            hourLimit: err.limit,
+            dayCount:  err.dayCount,
+            dayLimit:  err.dayLimit,
+            weekCount: err.weekCount,
+            weekLimit: err.weekLimit,
+            plan:      err.plan,
+          });
         }
 
         throw new Error(err.error || `Server error ${res.status}`);
@@ -190,6 +210,7 @@ export function useChat() {
           // ✅ Capture usage from done event
           if (data.type === "done" && data.usage) {
             setUsage(data.usage);
+            setRateLimit(null); // clear any previous rate limit block
           }
 
           if (data.type === "error") {
@@ -273,8 +294,9 @@ export function useChat() {
   return {
     conversations, activeId, messages, streaming,
     projects, activeProjectId,
-    usage,           // ✅ NEW
-    upgradeRequired, // ✅ NEW
+    usage,           // ✅ { hourCount, dayCount, weekCount, ...limits, plan }
+    rateLimit,       // ✅ set when blocked — { window, retryAt, ... }
+    upgradeRequired, // ✅ file upload blocked
     selectConv,
     setActiveProjectId: handleSetActiveProjectId,
     newConv:       () => createNewConv(activeProjectId),

@@ -374,21 +374,103 @@ function Avatar({ user, size = 30 }) {
   );
 }
 
+// ─── Countdown timer hook ────────────────────────────────────
+function useCountdown(retryAt) {
+  const [timeLeft, setTimeLeft] = useState("");
+  useEffect(() => {
+    if (!retryAt) { setTimeLeft(""); return; }
+    const tick = () => {
+      const diff = new Date(retryAt) - Date.now();
+      if (diff <= 0) { setTimeLeft("now"); return; }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      if (h > 0) setTimeLeft(`${h}h ${m}m`);
+      else if (m > 0) setTimeLeft(`${m}m ${s}s`);
+      else setTimeLeft(`${s}s`);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [retryAt]);
+  return timeLeft;
+}
+
+// ─── RateLimitBanner ──────────────────────────────────────────
+function RateLimitBanner({ rateLimit, onUpgrade }) {
+  const timeLeft = useCountdown(rateLimit?.retryAt);
+  if (!rateLimit) return null;
+
+  const { window, count, limit, plan } = rateLimit;
+  const icons   = { hourly: "⏱️", daily: "📅", weekly: "📆" };
+  const labels  = { hourly: "hourly", daily: "daily", weekly: "weekly" };
+  const colors  = { hourly: "#f59e0b", daily: "#ef4444", weekly: "#7c3aed" };
+  const color   = colors[window] || "#ef4444";
+
+  return (
+    <div style={{ maxWidth: 780, width: "100%", margin: "0 auto", padding: "0 16px 10px" }}>
+      <div style={{ background: color + "10", border: `1px solid ${color}44`, borderRadius: 12, padding: "14px 16px" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color, marginBottom: 4 }}>
+              {icons[window]} {labels[window].charAt(0).toUpperCase() + labels[window].slice(1)} limit reached
+              <span style={{ fontSize: 11, fontWeight: 500, background: color + "22", borderRadius: 99, padding: "1px 7px", marginLeft: 8, textTransform: "uppercase" }}>{plan}</span>
+            </div>
+            <div style={{ fontSize: 12, color: "var(--text2)", lineHeight: 1.6 }}>
+              You've used <strong>{count}/{limit}</strong> messages this {labels[window] === "hourly" ? "hour" : labels[window] === "daily" ? "24 hours" : "week"}.
+              {rateLimit.retryAt && timeLeft !== "now" && (
+                <> Available again in <strong style={{ color }}>{timeLeft}</strong>.</>
+              )}
+              {timeLeft === "now" && <> You can send messages again now!</>}
+            </div>
+          </div>
+          {plan !== "max" && (
+            <button onClick={onUpgrade} style={{ flexShrink: 0, padding: "7px 14px", background: color, border: "none", borderRadius: 8, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
+              Upgrade ↑
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── UsageBar ─────────────────────────────────────────────────
 function UsageBar({ usage, onUpgrade }) {
   if (!usage) return null;
-  const { count, limit, plan } = usage;
-  const pct = Math.min((count / limit) * 100, 100);
-  const isWarn = pct >= 80;
-  const isFull = pct >= 100;
-  const barColor = isFull ? "#dc2626" : isWarn ? "#f59e0b" : "var(--orange)";
+  const { hourCount = 0, hourLimit = 10, dayCount = 0, dayLimit = 20, weekCount = 0, weekLimit = 80, plan = "free" } = usage;
+
+  // Show the most constrained window
+  const hourPct  = hourLimit  >= 9999 ? 0 : Math.min((hourCount  / hourLimit)  * 100, 100);
+  const dayPct   = dayLimit   >= 9999 ? 0 : Math.min((dayCount   / dayLimit)   * 100, 100);
+  const weekPct  = weekLimit  >= 9999 ? 0 : Math.min((weekCount  / weekLimit)  * 100, 100);
+
+  const pct = Math.max(hourPct, dayPct, weekPct);
+  const isWarn = pct >= 75;
+  const barColor = pct >= 100 ? "#dc2626" : pct >= 75 ? "#f59e0b" : "var(--orange)";
+
+  // Label for the most constrained window
+  const activeWindow = hourPct >= dayPct && hourPct >= weekPct ? "hr"
+    : dayPct >= weekPct ? "day" : "wk";
+  const activeCount = activeWindow === "hr" ? hourCount : activeWindow === "day" ? dayCount : weekCount;
+  const activeLimit = activeWindow === "hr" ? hourLimit : activeWindow === "day" ? dayLimit : weekLimit;
+
   return (
-    <div style={{ padding: "4px 16px 10px", maxWidth: 780, margin: "0 auto", width: "100%" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-        <span style={{ fontSize: 11, color: "var(--text3)" }}>
-          <span style={{ fontWeight: 600, color: barColor }}>{count}</span> / {limit === 9999 ? "∞" : limit} messages today
-          <span style={{ marginLeft: 6, background: barColor + "22", color: barColor, borderRadius: 99, padding: "1px 6px", fontSize: 10, fontWeight: 700, textTransform: "uppercase" }}>{plan}</span>
-        </span>
+    <div style={{ padding: "2px 16px 8px", maxWidth: 780, margin: "0 auto", width: "100%" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 3 }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <span style={{ fontSize: 11, color: "var(--text3)" }}>
+            <span style={{ fontWeight: 600, color: isWarn ? barColor : "var(--text2)" }}>{activeCount}</span>
+            <span>/{activeLimit >= 9999 ? "∞" : activeLimit} per {activeWindow}</span>
+            <span style={{ marginLeft: 6, background: barColor + "22", color: barColor, borderRadius: 99, padding: "1px 6px", fontSize: 10, fontWeight: 700, textTransform: "uppercase" }}>{plan}</span>
+          </span>
+          {/* Mini weekly indicator */}
+          {weekLimit < 9999 && (
+            <span style={{ fontSize: 10, color: "var(--text3)" }}>
+              {weekCount}/{weekLimit} this week
+            </span>
+          )}
+        </div>
         {isWarn && plan === "free" && (
           <button onClick={onUpgrade} style={{ fontSize: 11, fontWeight: 700, color: "var(--orange)", background: "none", border: "1px solid var(--orange)", borderRadius: 6, padding: "2px 8px", cursor: "pointer" }}>
             Upgrade ↑
@@ -855,7 +937,7 @@ export default function App() {
   const {
     conversations, activeId, messages, streaming,
     projects, activeProjectId,
-    usage, upgradeRequired,
+    usage, rateLimit, upgradeRequired,
     selectConv, setActiveProjectId, newConv, deleteConv,
     sendMessage, stopStream, createProject, deleteProject,
   } = useChat();
@@ -955,6 +1037,9 @@ export default function App() {
               </div>
             )}
         </div>
+
+        {/* Rate limit blocked banner */}
+        <RateLimitBanner rateLimit={rateLimit} onUpgrade={() => setShowPricing(true)} />
 
         {/* Usage Bar */}
         <UsageBar usage={usage} onUpgrade={() => setShowPricing(true)} />

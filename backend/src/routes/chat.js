@@ -52,8 +52,16 @@ const MODELS = {
   'gpt-4o':                    { provider: 'openai',     id: 'gpt-4o',                                  free: false, requiredPlan: 'pro'     },
 };
 
-// ─── Daily message limits per plan ───────────────────────────
-const DAILY_LIMITS = { free: 20, starter: 200, pro: 1000, max: 9999 };
+// ─── Rate limits — 3 rolling windows like Claude ─────────────
+//   hourly  = burst protection   (rolling 1h)
+//   daily   = fair use           (rolling 24h)
+//   weekly  = heavy use cap      (rolling 7d)
+const RATE_LIMITS = {
+  free:    { hourly: 10,  daily: 20,    weekly: 80    },
+  starter: { hourly: 40,  daily: 200,   weekly: 1000  },
+  pro:     { hourly: 80,  daily: 1000,  weekly: 5000  },
+  max:     { hourly: 500, daily: 9999,  weekly: 99999 },
+};
 
 function selectModel(requested) {
   return MODELS[requested] || MODELS['auto'];
@@ -84,21 +92,100 @@ function planAllowsModel(model, userPlan) {
   return false;
 }
 
-// ─── Check daily message limit ────────────────────────────────
-async function checkDailyLimit(userId, userPlan) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const count = await prisma.message.count({
+// ─── Rolling window message count helper ─────────────────────
+async function countMsgsInWindow(userId, sinceDate) {
+  return prisma.message.count({
     where: {
       role: 'user',
       conversation: { userId },
-      createdAt: { gte: today },
+      createdAt: { gte: sinceDate },
     },
   });
+}
 
-  const limit = DAILY_LIMITS[userPlan] || DAILY_LIMITS.free;
-  return { count, limit, exceeded: count >= limit };
+// ─── Find when user will next be unblocked ───────────────────
+// Returns the oldest message in the window — when it ages out, limit resets
+async function nextAvailableAt(userId, windowMs, limit) {
+  const since = new Date(Date.now() - windowMs);
+  // Get the (limit)th most recent message — when that ages out user is free
+  const msgs = await prisma.message.findMany({
+    where: {
+      role: 'user',
+      conversation: { userId },
+      createdAt: { gte: since },
+    },
+    orderBy: { createdAt: 'asc' },
+    take: limit,
+    select: { createdAt: true },
+  });
+  if (msgs.length < limit) return null; // not actually blocked
+  // When the oldest of these messages ages out of the window
+  return new Date(msgs[0].createdAt.getTime() + windowMs);
+}
+
+// ─── Main rate limit check (3 windows) ───────────────────────
+async function checkRateLimit(userId, userPlan) {
+  const limits  = RATE_LIMITS[userPlan] || RATE_LIMITS.free;
+  const now     = Date.now();
+
+  const [hourCount, dayCount, weekCount] = await Promise.all([
+    countMsgsInWindow(userId, new Date(now - 60 * 60 * 1000)),          // last 1h
+    countMsgsInWindow(userId, new Date(now - 24 * 60 * 60 * 1000)),     // last 24h
+    countMsgsInWindow(userId, new Date(now - 7 * 24 * 60 * 60 * 1000)), // last 7d
+  ]);
+
+  // Check hourly burst first
+  if (hourCount >= limits.hourly) {
+    const retryAt = await nextAvailableAt(userId, 60 * 60 * 1000, limits.hourly);
+    return {
+      exceeded:  true,
+      window:    'hourly',
+      count:     hourCount,
+      limit:     limits.hourly,
+      retryAt,
+      dayCount,  dayLimit:  limits.daily,
+      weekCount, weekLimit: limits.weekly,
+      plan:      userPlan,
+    };
+  }
+
+  // Check daily
+  if (dayCount >= limits.daily) {
+    const retryAt = await nextAvailableAt(userId, 24 * 60 * 60 * 1000, limits.daily);
+    return {
+      exceeded:  true,
+      window:    'daily',
+      count:     dayCount,
+      limit:     limits.daily,
+      retryAt,
+      dayCount,  dayLimit:  limits.daily,
+      weekCount, weekLimit: limits.weekly,
+      plan:      userPlan,
+    };
+  }
+
+  // Check weekly
+  if (weekCount >= limits.weekly) {
+    const retryAt = await nextAvailableAt(userId, 7 * 24 * 60 * 60 * 1000, limits.weekly);
+    return {
+      exceeded:  true,
+      window:    'weekly',
+      count:     weekCount,
+      limit:     limits.weekly,
+      retryAt,
+      dayCount,  dayLimit:  limits.daily,
+      weekCount, weekLimit: limits.weekly,
+      plan:      userPlan,
+    };
+  }
+
+  return {
+    exceeded:  false,
+    hourCount, hourLimit: limits.hourly,
+    dayCount,  dayLimit:  limits.daily,
+    weekCount, weekLimit: limits.weekly,
+    plan:      userPlan,
+  };
 }
 
 // ─── Generic OpenAI-compatible streaming ──────────────────────
@@ -211,18 +298,32 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
       });
     }
 
-    // Step 3: Check daily message limit
-    const { count, limit, exceeded } = await checkDailyLimit(req.user.id, userPlan);
-    if (exceeded) {
-      console.log(`🚫 Daily limit: user=${req.user.id} plan=${userPlan} count=${count}/${limit}`);
+    // Step 3: Check rate limits (hourly / daily / weekly rolling windows)
+    const rateLimit = await checkRateLimit(req.user.id, userPlan);
+    if (rateLimit.exceeded) {
+      const { window, count, limit, retryAt, dayCount, dayLimit, weekCount, weekLimit } = rateLimit;
+
+      const windowLabel = window === 'hourly' ? 'hour' : window === 'daily' ? '24 hours' : '7 days';
+      const retryMsg    = retryAt
+        ? ` Try again at ${retryAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`
+        : '';
+
+      console.log(`🚫 ${window} limit: user=${req.user.id} plan=${userPlan} ${count}/${limit}`);
+
       return res.status(403).json({
-        error: `Daily message limit reached (${limit} messages/day on ${userPlan} plan). Upgrade to send more!`,
+        error:       `${window.charAt(0).toUpperCase() + window.slice(1)} limit reached (${limit} msgs/${windowLabel} on ${userPlan} plan).${retryMsg}`,
         limitReached: true,
+        window,
         count,
         limit,
+        retryAt,
+        dayCount,  dayLimit,
+        weekCount, weekLimit,
         plan: userPlan,
       });
     }
+
+    const { dayCount, dayLimit, weekCount, weekLimit, hourCount, hourLimit } = rateLimit;
 
     // Step 4: Enforce model access by plan
     let chosenModel = selectModel(requestedModel);
@@ -274,7 +375,7 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
       } else {
         await prisma.conversation.update({ where: { id: conversationId }, data: { updatedAt: new Date() } });
       }
-      send(res, { type: 'done', fromCache: true, usage: { count: count+1, limit, plan: userPlan } });
+      send(res, { type: 'done', fromCache: true, usage: { hourCount: hourCount+1, hourLimit, dayCount: dayCount+1, dayLimit, weekCount: weekCount+1, weekLimit, plan: userPlan } });
       res.end();
       return;
     }
@@ -320,7 +421,7 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
       await prisma.conversation.update({ where: { id: conversationId }, data: { updatedAt: new Date() } });
     }
 
-    send(res, { type: 'done', usage: { count: count+1, limit, plan: userPlan } });
+    send(res, { type: 'done', usage: { hourCount: hourCount+1, hourLimit, dayCount: dayCount+1, dayLimit, weekCount: weekCount+1, weekLimit, plan: userPlan } });
     res.end();
 
   } catch (e) {
