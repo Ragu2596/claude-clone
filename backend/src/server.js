@@ -69,6 +69,7 @@ import projectRoutes      from './routes/projects.js';
 import paymentRoutes      from './routes/payment.js';
 import adminRoutes        from './routes/admin.js';       // 🆕 admin dashboard
 import modelsRoutes       from './routes/models.js';      // 🆕 auto model sync
+import supportRoutes      from './routes/support.js';
 
 app.use('/auth',              authRoutes);
 app.use('/api/chat',          chatRoutes);
@@ -77,6 +78,7 @@ app.use('/api/projects',      projectRoutes);
 app.use('/payments',          paymentRoutes);
 app.use('/api/admin',         adminRoutes);               // 🆕
 app.use('/api/models',        modelsRoutes);              // 🆕
+app.use('/api/support',       supportRoutes);
 
 // ── Health ────────────────────────────────────────────────────
 app.get('/health', (req, res) => res.json({

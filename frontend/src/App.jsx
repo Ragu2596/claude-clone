@@ -318,25 +318,27 @@ function HelpModal({ onClose }) {
     setChatLog(prev => [...prev, { role: "user", text: txt }]);
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      // ✅ Route through backend — never call AI APIs directly from browser (CORS blocked)
+      const res = await fetch(`${API}/api/support/chat`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        },
         body: JSON.stringify({
-          model: "claude-haiku-4-5-20251001",
-          max_tokens: 400,
-          system: `You are a friendly, concise support assistant for rk.ai — an AI chat app built for Indian users. Plans: Free (20 msgs/hr limit), Starter ₹199/mo, Pro ₹499/mo, Max ₹999/mo. Payments via Razorpay. Models: free (Groq/Gemini/Mistral), Starter+ (Claude Haiku, GPT-4o Mini, Perplexity), Pro+ (GPT-4o, Claude Sonnet). Rate limits are rolling windows, not midnight resets. Keep answers short (2-3 sentences max). User: ${user?.name || "guest"}`,
-          messages: [
-            ...chatLog.filter(m => m.role !== "support").map(m => ({ role: m.role === "user" ? "user" : "assistant", content: m.text })),
-            { role: "user", content: txt }
-          ],
+          message: txt,
+          history: chatLog.filter(m => m.role !== "support").map(m => ({
+            role: m.role === "user" ? "user" : "assistant",
+            content: m.text,
+          })),
         }),
       });
       const data = await res.json();
-      const reply = data.content?.[0]?.text || "Sorry, I couldn't get a response. Please try again.";
-      setChatLog(prev => [...prev, { role: "support", text: reply }]);
-    } catch {
-      setChatLog(prev => [...prev, { role: "support", text: "Something went wrong. Please email support@rk.ai" }]);
+      if (!res.ok) throw new Error(data.error || "Server error");
+      setChatLog(prev => [...prev, { role: "support", text: data.reply }]);
+    } catch (e) {
+      console.error("Support chat error:", e);
+      setChatLog(prev => [...prev, { role: "support", text: "Something went wrong. Please try again or email ragunath2596@gmail.com" }]);
     } finally {
       setLoading(false);
     }
