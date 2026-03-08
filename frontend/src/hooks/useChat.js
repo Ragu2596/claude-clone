@@ -36,10 +36,10 @@ export function useChat() {
     setActiveId(id);
   };
 
-  const loadConvs = useCallback(async (pid) => {
+  const loadConvs = useCallback(async (_pid) => {
+    // ✅ Always load ALL conversations — project selection only sets chat context
     try {
-      const url = pid ? `/api/conversations?projectId=${pid}` : `/api/conversations`;
-      const r = await apiFetch(url);
+      const r = await apiFetch("/api/conversations");
       if (r.ok) setConversations(await r.json());
     } catch (e) { console.error("loadConvs:", e); }
   }, []);
@@ -297,7 +297,7 @@ export function useChat() {
         setActiveProjectId(p.id);
         updateActiveId(null);
         setMessages([]);
-        await loadConvs(p.id);
+        await loadConvs(null); // load all convs — recents always shows everything
         return p;
       }
     } catch (e) { console.error("createProject:", e); }
