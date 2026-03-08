@@ -121,7 +121,27 @@ export default function PricingPage({ onClose }) {
   const [error,    setError]    = useState("");
   const [success,  setSuccess]  = useState("");
 
-  const currentPlan = user?.plan || "free";
+  const currentPlan    = user?.plan || "free";
+  const [currentBilling, setCurrentBilling] = useState(
+    user?.plan === "free" ? "monthly" : (localStorage.getItem("planBilling") || "monthly")
+  );
+
+  // Sync billing period from backend on open — source of truth
+  useEffect(() => {
+    if (!user || user.plan === "free") return;
+    const token = localStorage.getItem("token");
+    fetch(`${import.meta.env.VITE_API_URL}/payments/my-billing`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d?.billing) {
+          setCurrentBilling(d.billing);
+          localStorage.setItem("planBilling", d.billing);
+        }
+      })
+      .catch(() => {}); // silently fallback to localStorage
+  }, [user]);
 
   const fmt = (plan) => {
     const p = currency === "INR" ? plan.priceINR : plan.priceUSD;
@@ -199,6 +219,8 @@ export default function PricingPage({ onClose }) {
               });
               const vd = await vr.json();
               if (vr.ok && vd.success) {
+                // ✅ Save billing period so "YOUR PLAN" badge shows correctly
+                localStorage.setItem("planBilling", billing);
                 setSuccess(`🎉 Welcome to rk.ai ${plan.name}! Your plan is now active.`);
                 resolve();
                 setTimeout(() => { onClose?.(); window.location.reload(); }, 2000);
@@ -294,7 +316,8 @@ export default function PricingPage({ onClose }) {
         {/* Plan Cards */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
           {PLANS.map(plan => {
-            const isCurrent    = plan.id === currentPlan;
+            // "YOUR PLAN" only when plan AND billing both match what user actually paid for
+            const isCurrent    = plan.id === currentPlan && (plan.id === "free" || billing === currentBilling);
             const isUpgrade    = PLAN_RANK[plan.id] > PLAN_RANK[currentPlan];
             const isDowngrade  = PLAN_RANK[plan.id] < PLAN_RANK[currentPlan] && plan.id !== "free";
             const isProcessing = loading === plan.id;

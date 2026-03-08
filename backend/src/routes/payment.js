@@ -124,7 +124,7 @@ router.post('/verify', authenticate, async (req, res) => {
     // ── 3. Update user plan ───────────────────────────────────
     await prisma.user.update({
       where: { id: req.user.id },
-      data:  { plan, planExpiresAt: expiresAt, planPaymentId: razorpay_payment_id },
+      data:  { plan, billing, planExpiresAt: expiresAt, planPaymentId: razorpay_payment_id },
     });
 
     // ── 4. Save payment record ────────────────────────────────
@@ -181,6 +181,23 @@ router.get('/history', authenticate, async (req, res) => {
     res.json(payments);
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /payments/my-billing — returns user's actual billing period (monthly/yearly)
+router.get('/my-billing', authenticate, async (req, res) => {
+  try {
+    const lastPayment = await prisma.payment.findFirst({
+      where:   { userId: req.user.id, status: 'paid' },
+      orderBy: { createdAt: 'desc' },
+      select:  { billing: true, plan: true },
+    });
+    res.json({
+      billing: lastPayment?.billing || 'monthly',
+      plan:    lastPayment?.plan    || req.user.plan || 'free',
+    });
+  } catch (e) {
+    res.json({ billing: 'monthly' });
   }
 });
 

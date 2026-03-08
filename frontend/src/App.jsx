@@ -131,14 +131,66 @@ function AuthPage() {
 
   useEffect(() => { if (oauthError) { setError(oauthError); setOauthError(null); } }, [oauthError]);
 
+  const [justRegistered, setJustRegistered] = useState(false);
+  const [registeredName, setRegisteredName] = useState("");
+
   const submit = async () => {
     setError(""); setLoading(true);
     try {
-      if (mode === "login") await login(form.email, form.password);
-      else await register(form.name, form.email, form.password);
+      if (mode === "login") {
+        await login(form.email, form.password);
+      } else {
+        await register(form.name, form.email, form.password);
+        // Show success screen before app loads
+        setRegisteredName(form.name || form.email.split("@")[0]);
+        setJustRegistered(true);
+        setLoading(false);
+        return;
+      }
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
   };
+
+  // ── Signup success screen ─────────────────────────────────────
+  if (justRegistered) {
+    return (
+      <div style={{ minHeight: "100vh", background: "var(--cream)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <div style={{ width: "100%", maxWidth: 400, textAlign: "center" }}>
+          <div style={{ fontSize: 64, marginBottom: 16 }}>🎉</div>
+          <RkLogo size={48} />
+          <h1 style={{ fontSize: 28, fontWeight: 800, marginTop: 16, color: "var(--text)", letterSpacing: "-0.02em" }}>
+            Welcome to rk.ai!
+          </h1>
+          <p style={{ fontSize: 15, color: "var(--text2)", marginTop: 8, marginBottom: 28 }}>
+            Hey <strong>{registeredName}</strong>, your account is ready 🚀
+          </p>
+          <div style={{ background: "#fff", borderRadius: 16, padding: "20px 24px", border: "1px solid var(--border)", marginBottom: 24, textAlign: "left" }}>
+            {[
+              { icon: "✅", text: "Free account activated" },
+              { icon: "🤖", text: "Groq & Gemini models ready to use" },
+              { icon: "💬", text: "5 free messages per day to start" },
+              { icon: "⚡", text: "Upgrade anytime for more models" },
+            ].map((item, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: i < 3 ? "1px solid var(--border)" : "none" }}>
+                <span style={{ fontSize: 18 }}>{item.icon}</span>
+                <span style={{ fontSize: 13, color: "var(--text)", fontWeight: 500 }}>{item.text}</span>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={() => setJustRegistered(false)}
+            style={{ width: "100%", padding: "13px", background: "var(--orange)", border: "none", borderRadius: 12, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 14px rgba(201,100,66,0.35)" }}
+            onMouseEnter={e => e.currentTarget.style.opacity = "0.9"}
+            onMouseLeave={e => e.currentTarget.style.opacity = "1"}>
+            Start chatting →
+          </button>
+          <p style={{ fontSize: 12, color: "var(--text3)", marginTop: 14 }}>
+            You're signed in as <strong>{form.email}</strong>
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--cream)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
