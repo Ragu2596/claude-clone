@@ -940,21 +940,17 @@ export default function App() {
             ? <Welcome onSend={sendMessage} user={user} isMobile={isMobile} />
             : (
               <div style={{ maxWidth: 740, margin: "0 auto", padding: isMobile ? "8px 12px 16px" : "8px 24px 16px" }}>
-                {messages.map((m, i) => {
-                  const isLastMsg = i === messages.length - 1;
-                  const isAsst    = m.role === "assistant";
-                  return (
-                    <Message
-                      key={m.id}
-                      msg={m}
-                      isLast={isLastMsg}
-                      streaming={streaming}
-                      onArtifact={(code, lang) => setArtifact({ code, lang })}
-                      onRetry={isAsst && !streaming ? handleRetry : undefined}
-                      onEdit={m.role === "user" && !streaming ? handleEdit : undefined}
-                    />
-                  );
-                })}
+                {messages.map((m, i) => (
+                  <Message
+                    key={m.id}
+                    msg={m}
+                    isLast={i === messages.length - 1}
+                    streaming={streaming}
+                    onArtifact={(code, lang) => setArtifact({ code, lang })}
+                    onRetry={m.role === "assistant" ? handleRetry : undefined}
+                    onEdit={m.role === "user" ? handleEdit : undefined}
+                  />
+                ))}
                 <div ref={bottomRef} />
               </div>
             )}
