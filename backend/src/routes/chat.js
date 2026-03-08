@@ -6,6 +6,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { authenticate } from '../middleware/auth.js';
 import { checkCache, storeInCache, getFlywheelStats } from '../services/knowledgeCache.js';
+import { logApiUsage, checkBudget, PLAN_BUDGETS } from '../services/costTracker.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -325,6 +326,13 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
 
     const { dayCount, dayLimit, weekCount, weekLimit, hourCount, hourLimit } = rateLimit;
 
+    // Step 3b: Check API budget (auto-fallback to free model if exhausted)
+    const budget = await checkBudget(req.user.id, userPlan);
+    const budgetExhausted = userPlan !== 'free' && !budget.hasbudget;
+    if (budgetExhausted) {
+      console.log(`💸 Budget exhausted: user=${req.user.id} plan=${userPlan} ${budget.used}/${budget.limit}µ$ — falling back to free model`);
+    }
+
     // Step 4: Enforce model access by plan
     let chosenModel = selectModel(requestedModel);
     if (!planAllowsModel(chosenModel, userPlan)) {
@@ -332,7 +340,14 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
       chosenModel = MODELS['auto'];
     }
 
-    console.log(`💬 Chat: "${message?.slice(0,40)}" plan=${userPlan} msgs=${count+1}/${limit} → ${chosenModel.provider}:${chosenModel.id}`);
+    // If user's monthly API budget is exhausted → silently fall back to free model
+    // They still get service, just on Groq instead of Claude/GPT
+    if (budgetExhausted && chosenModel.requiredPlan) {
+      console.log(`💸 Budget fallback: ${chosenModel.id} → groq:llama-3.3-70b-versatile`);
+      chosenModel = MODELS['llama-3.3-70b-versatile'];
+    }
+
+    console.log(`💬 Chat: "${message?.slice(0,40)}" plan=${userPlan} budget=${budget.pct}% → ${chosenModel.provider}:${chosenModel.id}`);
 
     const conv = await prisma.conversation.findFirst({
       where:   { id: conversationId, userId: req.user.id },
@@ -408,7 +423,19 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
       }
     }
 
-    console.log(`✅ Done — ${chosenModel.provider} len=${fullResponse.length} plan=${userPlan} msgs=${count+1}/${limit}`);
+    console.log(`✅ Done — ${chosenModel.provider} len=${fullResponse.length} plan=${userPlan}`);
+
+    // ── Track API cost automatically ─────────────────────────────
+    const costMicro = await logApiUsage({
+      userId:     req.user.id,
+      modelId:    chosenModel.id,
+      inputText:  message,
+      outputText: fullResponse,
+      fromCache:  false,
+    });
+    if (costMicro > 0) {
+      console.log(`💰 Cost logged: $${(costMicro/1_000_000).toFixed(6)} for ${chosenModel.id}`);
+    }
 
     await prisma.message.create({ data: { role: 'assistant', content: fullResponse, conversationId } });
     await storeInCache(message, fullResponse, chosenModel.id, hasFile);
@@ -421,7 +448,7 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
       await prisma.conversation.update({ where: { id: conversationId }, data: { updatedAt: new Date() } });
     }
 
-    send(res, { type: 'done', usage: { hourCount: hourCount+1, hourLimit, dayCount: dayCount+1, dayLimit, weekCount: weekCount+1, weekLimit, plan: userPlan } });
+    send(res, { type: 'done', usage: { hourCount: hourCount+1, hourLimit, dayCount: dayCount+1, dayLimit, weekCount: weekCount+1, weekLimit, plan: userPlan, budgetPct: budget.pct, budgetExhausted } });
     res.end();
 
   } catch (e) {

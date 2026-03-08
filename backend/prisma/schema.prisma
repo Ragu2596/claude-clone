@@ -15,17 +15,48 @@ model User {
   avatar         String?
   googleId       String?   @unique
   password       String?
+
+  // ── Plan ──────────────────────────────────────────────────
   plan           String    @default("free")
   planExpiresAt  DateTime?
   planPaymentId  String?
+
+  // ── API Cost Tracking (auto-managed) ─────────────────────
+  // Stores actual cost in micro-dollars (1 USD = 1,000,000 units)
+  // So $1.50 = 1,500,000. Using int avoids float precision issues.
+  apiCostUsed    Int       @default(0)   // this month's usage
+  apiCostLimit   Int       @default(0)   // monthly budget for their plan
+  apiCostReset   DateTime  @default(now()) // when the monthly budget resets
+
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+
   conversations  Conversation[]
   projects       Project[]
   payments       Payment[]
+  apiUsageLogs   ApiUsageLog[]
 
   @@index([email])
   @@index([googleId])
+}
+
+// ── Per-message API cost log ───────────────────────────────
+model ApiUsageLog {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  model          String   // e.g. "claude-sonnet-4-20250514"
+  provider       String   // e.g. "anthropic"
+  inputTokens    Int      @default(0)
+  outputTokens   Int      @default(0)
+  costMicro      Int      @default(0)   // cost in micro-dollars
+  fromCache      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@index([model])
 }
 
 model Payment {
@@ -39,7 +70,7 @@ model Payment {
   amount    Int
   status    String   @default("paid")
   createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt  // ✅ ADDED
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@index([userId])
 }

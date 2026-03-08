@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import Razorpay from 'razorpay';
 import { authenticate } from '../middleware/auth.js';
 import prisma from '../lib/prisma.js';
+import { activatePlanBudget } from '../services/costTracker.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -142,6 +143,9 @@ router.post('/verify', authenticate, async (req, res) => {
         updatedAt: new Date(),
       },
     });
+
+    // ── 5. Auto-activate API budget for this user ─────────────
+    await activatePlanBudget(req.user.id, plan, billing);
 
     console.log(`✅ Verified: ${req.user.email} → ${plan}/${billing} expires ${expiresAt.toDateString()}`);
     res.json({ success: true, plan, expiresAt });
