@@ -7,6 +7,7 @@ import { useAuth } from "./context/AuthContext";
 import { useChat } from "./hooks/useChat";
 import PricingPage from "./PricingPage";
 import AdminDashboard from "./AdminDashboard";
+import SettingsModal, { initSettings } from "./SettingsModal";
 
 // ─── Mobile hook ──────────────────────────────────────────────
 function useIsMobile() {
@@ -92,6 +93,9 @@ const CSS = `
   .user-actions { opacity: 0; transition: opacity .15s; }
   .user-wrap:hover .user-actions { opacity: 1; }
 `;
+// ── Init theme + font size on load ────────────────────────────
+initSettings();
+
 if (!document.getElementById("rk-css")) {
   const s = document.createElement("style"); s.id = "rk-css"; s.textContent = CSS; document.head.appendChild(s);
 }
@@ -212,89 +216,8 @@ function Modal({ onClose, children, width = 480 }) {
   );
 }
 
-// ─── Settings Modal ───────────────────────────────────────────
-function SettingsModal({ onClose }) {
-  const { user } = useAuth();
-  const [theme,    setTheme]    = useState(localStorage.getItem("rk-theme")    || "light");
-  const [fontSize, setFontSize] = useState(localStorage.getItem("rk-fontsize") || "medium");
-  const [saved,    setSaved]    = useState(false);
-
-  const save = () => {
-    localStorage.setItem("rk-theme",    theme);
-    localStorage.setItem("rk-fontsize", fontSize);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
-
-  const Section = ({ title, children }) => (
-    <div style={{ marginBottom: 24 }}>
-      <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>{title}</p>
-      {children}
-    </div>
-  );
-
-  const Row = ({ label, sub, children }) => (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 0", borderBottom: "1px solid var(--border)" }}>
-      <div>
-        <p style={{ fontSize: 14, color: "var(--text)", fontWeight: 500 }}>{label}</p>
-        {sub && <p style={{ fontSize: 12, color: "var(--text3)", marginTop: 2 }}>{sub}</p>}
-      </div>
-      {children}
-    </div>
-  );
-
-  const ToggleGroup = ({ value, onChange, options }) => (
-    <div style={{ display: "inline-flex", background: "#e8e2da", borderRadius: 8, padding: 2 }}>
-      {options.map(o => (
-        <button key={o.value} onClick={() => onChange(o.value)} style={{ padding: "5px 12px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: value === o.value ? "#fff" : "transparent", color: value === o.value ? "var(--text)" : "var(--text3)", boxShadow: value === o.value ? "0 1px 3px rgba(0,0,0,0.1)" : "none", transition: "all .15s" }}>
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
-
-  return (
-    <Modal onClose={onClose} width={460}>
-      <div style={{ padding: "28px 28px 24px" }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", marginBottom: 24 }}>⚙️ Settings</h2>
-
-        <Section title="Account">
-          <Row label="Name" sub={user?.name}>
-            <span style={{ fontSize: 12, color: "var(--text3)" }}>via Google</span>
-          </Row>
-          <Row label="Email" sub={user?.email}>
-            <span style={{ fontSize: 12, color: "var(--text3)" }}></span>
-          </Row>
-          <Row label="Plan">
-            <span style={{ fontSize: 12, fontWeight: 700, background: "var(--orange)", color: "#fff", borderRadius: 99, padding: "2px 10px", textTransform: "uppercase" }}>{user?.plan || "free"}</span>
-          </Row>
-        </Section>
-
-        <Section title="Appearance">
-          <Row label="Theme" sub="Interface color scheme">
-            <ToggleGroup value={theme} onChange={setTheme} options={[{ value: "light", label: "☀️ Light" }, { value: "dark", label: "🌙 Dark" }, { value: "system", label: "💻 System" }]} />
-          </Row>
-          <Row label="Font size" sub="Message text size">
-            <ToggleGroup value={fontSize} onChange={setFontSize} options={[{ value: "small", label: "S" }, { value: "medium", label: "M" }, { value: "large", label: "L" }]} />
-          </Row>
-        </Section>
-
-        <Section title="Danger zone">
-          <Row label="Delete all conversations" sub="This cannot be undone">
-            <button style={{ padding: "6px 12px", background: "none", border: "1px solid #fca5a5", borderRadius: 7, color: "#dc2626", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
-              onClick={() => { if (confirm("Delete ALL conversations? This cannot be undone.")) alert("Feature coming soon!"); }}>
-              Delete all
-            </button>
-          </Row>
-        </Section>
-
-        <button onClick={save} style={{ width: "100%", padding: 12, background: "var(--orange)", border: "none", borderRadius: 10, color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
-          {saved ? "✓ Saved!" : "Save changes"}
-        </button>
-      </div>
-    </Modal>
-  );
-}
+// ─── SettingsModal → imported from ./SettingsModal.jsx ───────
+// (see SettingsModal.jsx for full implementation)
 
 // ─── Language Modal ───────────────────────────────────────────
 function LanguageModal({ onClose }) {
@@ -680,7 +603,7 @@ function Sidebar({ conversations, projects, activeId, activeProjectId, selectCon
       </div>
 
       {/* Modals rendered outside sidebar scroll */}
-      {activeModal === "settings"  && <SettingsModal  onClose={() => setActiveModal(null)} />}
+      {activeModal === "settings"  && <SettingsModal  onClose={() => setActiveModal(null)} onUpgrade={() => setShowPricing(true)} />}
       {activeModal === "language"  && <LanguageModal  onClose={() => setActiveModal(null)} />}
       {activeModal === "help"      && <HelpModal      onClose={() => setActiveModal(null)} />}
       {activeModal === "gift"      && <GiftModal      onClose={() => setActiveModal(null)} />}

@@ -16,7 +16,6 @@ router.get('/', authenticate, async (req, res) => {
       where = { userId: req.user.id, projectId: projectId };
     } else {
       // Get conversations NOT in any project
-      // Using 'equals: null' syntax works across all Prisma versions
       where = {
         userId: req.user.id,
         OR: [
@@ -84,6 +83,21 @@ router.patch('/:id', authenticate, async (req, res) => {
     res.json(updated);
   } catch (e) {
     console.error('PATCH /conversations/:id error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// DELETE /api/conversations/all — delete ALL conversations for the user
+// ⚠️ Must be defined BEFORE /:id route to avoid "all" being treated as an id
+router.delete('/all', authenticate, async (req, res) => {
+  try {
+    const { count } = await prisma.conversation.deleteMany({
+      where: { userId: req.user.id },
+    });
+    console.log(`🗑️  Deleted all ${count} conversations for user ${req.user.id}`);
+    res.json({ success: true, deleted: count });
+  } catch (e) {
+    console.error('DELETE /conversations/all error:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
