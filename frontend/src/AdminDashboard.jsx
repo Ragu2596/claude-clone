@@ -280,7 +280,7 @@ export default function AdminDashboard() {
                           {profit>=0 ? "+" : ""}{INR(profit)}
                           {isLoss && <span style={{ marginLeft:6, fontSize:10 }}>⚠️</span>}
                         </td>
-                        <td style={{ padding:"10px 14px", color:"#94a3b8" }}>{u._count?.conversations || 0}</td>
+                        <td style={{ padding:"10px 14px", color:"#94a3b8" }}>{u.messageCount || 0}</td>
                         <td style={{ padding:"10px 14px", color:"#64748b", fontSize:11 }}>
                           {new Date(u.createdAt).toLocaleDateString()}
                         </td>
@@ -311,7 +311,7 @@ export default function AdminDashboard() {
                 <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))", gap:10, marginBottom:16 }}>
                   <StatCard label="Revenue"   value={INR(selUser.revenueInr||0)} color="#a78bfa" />
                   <StatCard label="API Cost"  value={USD(selUser.costUsd||0)} color="#f87171" />
-                  <StatCard label="Messages"  value={selUser._count?.conversations||0}      color="#60a5fa" />
+                  <StatCard label="Messages"  value={selUser.messageCount || 0}      color="#60a5fa" />
                   <StatCard label="Expires"   value={selUser.planExpiresAt ? new Date(selUser.planExpiresAt).toLocaleDateString() : "—"} color="#94a3b8" />
                 </div>
                 <p style={{ fontSize:12, color:"#64748b", marginBottom:8, fontWeight:600 }}>RECENT USAGE LOGS</p>

@@ -163,7 +163,7 @@ export async function getAllUserStats() {
         id: true, name: true, email: true, avatar: true,
         plan: true, planExpiresAt: true, createdAt: true,
         apiCostUsed: true, apiCostLimit: true, apiCostReset: true,
-        _count: { select: { conversations: true } },
+        _count: { select: { conversations: true, apiUsageLogs: true } },
       },
       orderBy: { createdAt: 'desc' },
     }),
@@ -187,7 +187,7 @@ export async function getAllUserStats() {
   const costMap    = Object.fromEntries(monthlyUsage.map(u => [u.userId, u._sum.costMicro || 0]));
 
   return users.map(u => {
-    const revenueInr  = revenueMap[u.id] || 0;
+    const revenueInr  = Math.round((revenueMap[u.id] || 0) / 100); // paise → rupees
     const costMicro   = costMap[u.id]    || 0;
     const costUsd     = costMicro / 1_000_000;
     const costInr     = Math.round(costUsd * 84); // approx USD→INR
@@ -196,6 +196,7 @@ export async function getAllUserStats() {
 
     return {
       ...u,
+      messageCount: u._count.apiUsageLogs || 0,
       revenueInr,
       costInr,
       costUsd:   parseFloat(costUsd.toFixed(4)),
@@ -240,7 +241,7 @@ export async function getBusinessSummary() {
     }),
   ]);
 
-  const revINR  = revenueThisMonth._sum.amount || 0;
+  const revINR  = Math.round((revenueThisMonth._sum.amount || 0) / 100); // paise → rupees
   const costMicro = apiCostThisMonth._sum.costMicro || 0;
   const costINR = Math.round((costMicro / 1_000_000) * 84);
   const profitINR = revINR - costINR;
@@ -251,7 +252,7 @@ export async function getBusinessSummary() {
     paidUsers,
     freeUsers: totalUsers - paidUsers,
     revenueInr:     revINR,
-    lastRevenueInr: revenueLast._sum.amount || 0,
+    lastRevenueInr: Math.round((revenueLast._sum.amount || 0) / 100),
     costInr:        costINR,
     lastCostInr:    Math.round(((apiCostLast._sum.costMicro || 0) / 1_000_000) * 84),
     profitInr:      profitINR,
