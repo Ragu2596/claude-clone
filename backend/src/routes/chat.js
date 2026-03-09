@@ -414,6 +414,19 @@ async function callProvider(chosenModel, systemPrompt, history, res) {
   throw new Error(`Unknown provider: ${provider}`);
 }
 
+function shouldSkipCache(message, existingMessageCount) {
+  if (existingMessageCount > 0) return true;
+  if (message.length < 40) return true;
+  const lower = message.toLowerCase().trim();
+  const contextual = [
+    'show me','give me','can you','what about','explain more','tell me more',
+    'how about','also','another','more ','now ','then ','next ','make it',
+    'change ','update ','fix ','modify ','same ','that ','this ','it ',
+    'the above','previous','last ','again','redo'
+  ];
+  return contextual.some(p => lower.startsWith(p));
+}
+
 // ─── Main chat route ───────────────────────────────────────────
 router.post('/', authenticate, upload.single('file'), async (req, res) => {
   const { message, conversationId, model: requestedModel } = req.body;
@@ -532,9 +545,11 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
 
     // Check knowledge cache
     const hasFile      = !!req.file;
-    const cachedAnswer = await checkCache(message, hasFile);
-
-    if (cachedAnswer) {
+    const existingMessageCount = conv.messages.length;
+    const skipCache = shouldSkipCache(message, existingMessageCount);
+    const cachedAnswer = skipCache ? null : await checkCache(message, hasFile);
+      if (!skipCache) console.log(`🔄 Cache skipped — ${existingMessageCount} prior msgs`);
+      if (cachedAnswer) {
       console.log('⚡ CACHE HIT — FREE!');
       res.writeHead(200, {
         'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform',
@@ -615,7 +630,7 @@ ${langInstr}` : basePrompt;
     }
 
     await prisma.message.create({ data: { role: 'assistant', content: fullResponse, conversationId } });
-    await storeInCache(message, fullResponse, chosenModel.id, hasFile);
+    if (!skipCache) await storeInCache(message, fullResponse, chosenModel.id, hasFile);
 
     if (conv.title === 'New Chat' && conv.messages.length === 0) {
       const title = autoTitle(message);
