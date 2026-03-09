@@ -14,7 +14,19 @@
 //   5. Role determines what they can see/do
 
 import express    from 'express';
-// Email via Resend API (works on Render free tier — no SMTP port blocking)
+// ── Email via Resend API (HTTPS — works on Render free tier) ────
+async function sendEmail({ to, subject, html }) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) throw new Error('RESEND_API_KEY not set');
+  const res = await fetch('https://api.resend.com/emails', {
+    method:  'POST',
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from: 'rk.ai Admin <onboarding@resend.dev>', to: [to], subject, html }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Resend API error');
+  return data;
+}
 import { authenticate } from '../middleware/auth.js';
 import { getAllUserStats, getBusinessSummary } from '../services/costTracker.js';
 import { PrismaClient } from '@prisma/client';
