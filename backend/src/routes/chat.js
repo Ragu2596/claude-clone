@@ -9,6 +9,7 @@ import { checkCache, storeInCache, getFlywheelStats } from '../services/knowledg
 import { logApiUsage, checkBudget, PLAN_BUDGETS } from '../services/costTracker.js';
 import { syncModels } from '../services/modelSync.js';
 import dotenv from 'dotenv';
+import { getUserMemory, updateUserMemory } from '../services/userMemory.js';
 dotenv.config();
 
 const router = express.Router();
@@ -427,6 +428,15 @@ function shouldSkipCache(message, existingMessageCount) {
   return contextual.some(p => lower.startsWith(p));
 }
 
+function shouldSkipCache(message, existingMessageCount) {
+  if (existingMessageCount > 0) return true;
+  if (message.length < 40) return true;
+  const lower = message.toLowerCase().trim();
+  const contextual = ['show me','give me','can you','what about','explain more',
+    'how about','also','another','more ','now ','then ','next ','make it',
+    'change ','update ','fix ','modify ','same ','that ','this ','it ','again'];
+  return contextual.some(p => lower.startsWith(p));
+}
 // ─── Main chat route ───────────────────────────────────────────
 router.post('/', authenticate, upload.single('file'), async (req, res) => {
   const { message, conversationId, model: requestedModel } = req.body;
@@ -581,8 +591,10 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
     history.push({ role: 'user', content: message });
     const userLang     = req.body.lang || 'en';
     const langInstr    = LANG_INSTRUCTIONS[userLang] || '';
+    const userMemory   = await getUserMemory(req.user.id);
     const basePrompt   = conv.project?.systemPrompt || 'You are rk.ai, a helpful AI assistant. Be concise, accurate and helpful.';
-    const systemPrompt = langInstr ? `${basePrompt}
+    const memoryPrompt = userMemory ? `${basePrompt}\n\n--- What I know about this user from past conversations ---\n${userMemory}\n---` : basePrompt;
+    const systemPrompt = langInstr ? `${memoryPrompt}
 
 ${langInstr}` : basePrompt;
 
