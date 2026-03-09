@@ -1244,6 +1244,7 @@ function InputBar({ onSend, streaming, onStop }) {
   const [text, setText]             = useState("");
   const [file, setFile]             = useState(null);
   const [selectedModel, setModel]   = useState("auto");
+  const [pasteHint, setPasteHint]   = useState(false);
   const [menuOpen, setMenuOpen]     = useState(false);
   const [webSearch, setWebSearch]   = useState(false);
   const taRef   = useRef(null);
@@ -1261,6 +1262,25 @@ function InputBar({ onSend, streaming, onStop }) {
     // Prefix message with web search instruction if enabled
     const finalText = webSearch ? `[web search] ${t}` : t;
     onSend(finalText, file, selectedModel); setText(""); setFile(null);
+  };
+
+  const handlePaste = (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.startsWith("image/")) {
+        e.preventDefault();
+        const pastedFile = item.getAsFile();
+        if (pastedFile) {
+          const ext = item.type.split("/")[1] || "png";
+          const named = new File([pastedFile], `pasted-image-${Date.now()}.${ext}`, { type: item.type });
+          setFile(named);
+          setPasteHint(true);
+          setTimeout(() => setPasteHint(false), 2000);
+        }
+        return;
+      }
+    }
   };
 
   return (
@@ -1308,7 +1328,8 @@ function InputBar({ onSend, streaming, onStop }) {
 
         <textarea ref={taRef} value={text} onChange={e => setText(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
-          placeholder="How can rk.ai help you today?" rows={1}
+          onPaste={handlePaste}
+          placeholder="How can rk.ai help you today? (Paste images with Cmd+V)" rows={1}
           style={{ width: "100%", background: "none", border: "none", outline: "none", padding: "14px 16px 0", color: "var(--text)", fontSize: 15, lineHeight: 1.65, resize: "none", maxHeight: 200, overflowY: "auto", display: "block", fontFamily: "inherit" }} />
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px 10px" }}>
