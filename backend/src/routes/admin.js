@@ -28,10 +28,12 @@ const otpStore = new Map();
 // ── Mailer ───────────────────────────────────────────────────
 function getMailer() {
   return nodemailer.createTransport({
-    service: 'gmail',
+    host:   'smtp.gmail.com',
+    port:   465,
+    secure: true,           // SSL
     auth: {
       user: process.env.ADMIN_EMAIL,
-      pass: process.env.GMAIL_APP_PASSWORD,
+      pass: process.env.GMAIL_APP_PASSWORD,  // Google App Password
     },
   });
 }
