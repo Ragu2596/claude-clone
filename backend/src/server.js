@@ -35,7 +35,7 @@ app.use(cors({
   },
   credentials:    true,
   methods:        ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-session'],
 }));
 
 app.options('*', cors());
