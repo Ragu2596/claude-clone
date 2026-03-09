@@ -14,7 +14,7 @@
 //   5. Role determines what they can see/do
 
 import express    from 'express';
-import nodemailer from 'nodemailer';
+// Email via Resend API (works on Render free tier — no SMTP port blocking)
 import { authenticate } from '../middleware/auth.js';
 import { getAllUserStats, getBusinessSummary } from '../services/costTracker.js';
 import { PrismaClient } from '@prisma/client';
@@ -114,12 +114,10 @@ router.post('/send-otp', authenticate, isAdmin, async (req, res) => {
     res.json({ success: true, message: `OTP sent to ${email}` });
 
     // ── Send email in background (non-blocking) ───────────────
-    if (process.env.GMAIL_APP_PASSWORD) {
+    if (process.env.RESEND_API_KEY) {
       setImmediate(async () => {
         try {
-          const mailer = getMailer();
-          await mailer.sendMail({
-            from:    `"rk.ai Admin" <${process.env.ADMIN_EMAIL}>`,
+          await sendEmail({
             to:      email,
             subject: `🔐 rk.ai Admin OTP: ${otp}`,
             html: `
@@ -131,7 +129,7 @@ router.post('/send-otp', authenticate, isAdmin, async (req, res) => {
                   <p style="color:#c96442;font-size:48px;font-weight:900;letter-spacing:0.25em;margin:0">${otp}</p>
                   <p style="color:#64748b;font-size:12px;margin:8px 0 0">Expires in 10 minutes</p>
                 </div>
-                <p style="color:#475569;font-size:12px">If you didn't request this, ignore this email.</p>
+                <p style="color:#475569;font-size:12px">If you did not request this, ignore this email.</p>
               </div>`,
           });
           console.log(`✅ OTP email delivered to ${email}`);
@@ -184,7 +182,7 @@ router.post('/verify-otp', authenticate, isAdmin, async (req, res) => {
 router.get('/check', authenticate, async (req, res) => {
   const admin = await getAdminUser(req.user.email);
   if (!admin || !admin.active) return res.json({ isAdmin: false });
-  res.json({ isAdmin: true, role: admin.role, name: admin.name });
+  res.json({ isAdmin: true, role: admin.role, name: admin.name, email: req.user.email });
 });
 
 // ─────────────────────────────────────────────────────────────

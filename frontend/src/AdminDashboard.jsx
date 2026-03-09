@@ -345,7 +345,15 @@ export default function AdminDashboard() {
         const data = await apiFetch("/api/admin/check");
         if (data.isAdmin) {
           setIsAdmin(true);
-          setUserEmail(data.email || "");
+          // email from check API, fallback: decode from JWT
+          if (data.email) {
+            setUserEmail(data.email);
+          } else {
+            try {
+              const payload = JSON.parse(atob(getToken().split('.')[1]));
+              setUserEmail(payload.email || payload.sub || "");
+            } catch { setUserEmail(""); }
+          }
           if (!role) setRole(data.role);
         }
       } catch {}
