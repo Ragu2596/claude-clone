@@ -108,32 +108,42 @@ router.post('/send-otp', authenticate, isAdmin, async (req, res) => {
       windowEnd:    existing?.windowEnd || (Date.now() + 5 * 60 * 1000),
     });
 
-    try {
-      const mailer = getMailer();
-      await mailer.sendMail({
-        from:    `"rk.ai Admin" <${process.env.ADMIN_EMAIL}>`,
-        to:      email,
-        subject: `🔐 rk.ai Admin OTP: ${otp}`,
-        html: `
-          <div style="font-family:system-ui,sans-serif;max-width:420px;margin:0 auto;padding:32px;background:#0f172a;border-radius:12px;">
-            <h2 style="color:#f1f5f9;margin:0 0 6px">rk.ai Admin Login</h2>
-            <p style="color:#94a3b8;margin:0 0 6px">Role: <strong style="color:#c96442">${req.adminRole.toUpperCase()}</strong></p>
-            <p style="color:#94a3b8;margin:0 0 24px;font-size:13px">Admin dashboard access requested.</p>
-            <div style="background:#1e293b;border-radius:8px;padding:24px;text-align:center;margin-bottom:20px;">
-              <p style="color:#64748b;font-size:12px;margin:0 0 8px;text-transform:uppercase;letter-spacing:0.1em">Your OTP</p>
-              <p style="color:#c96442;font-size:48px;font-weight:900;letter-spacing:0.25em;margin:0">${otp}</p>
-              <p style="color:#64748b;font-size:12px;margin:8px 0 0">Expires in 10 minutes</p>
-            </div>
-            <p style="color:#475569;font-size:12px">If you didn't request this, ignore this email.</p>
-          </div>`,
-      });
-    } catch (mailErr) {
-      // Dev fallback — log to console
-      console.log(`🔐 [OTP for ${email}]: ${otp}  (email failed: ${mailErr.message})`);
-    }
-
-    console.log(`🔐 OTP sent to admin ${email} (role: ${req.adminRole})`);
+    // ── Respond IMMEDIATELY — don't block on email ──────────────
+    // OTP is already saved in memory, respond now so UI doesn't hang
+    console.log(`🔐 Admin OTP for ${email}: ${otp}  (role: ${req.adminRole})`);
     res.json({ success: true, message: `OTP sent to ${email}` });
+
+    // ── Send email in background (non-blocking) ───────────────
+    if (process.env.GMAIL_APP_PASSWORD) {
+      setImmediate(async () => {
+        try {
+          const mailer = getMailer();
+          await mailer.sendMail({
+            from:    `"rk.ai Admin" <${process.env.ADMIN_EMAIL}>`,
+            to:      email,
+            subject: `🔐 rk.ai Admin OTP: ${otp}`,
+            html: `
+              <div style="font-family:system-ui,sans-serif;max-width:420px;margin:0 auto;padding:32px;background:#0f172a;border-radius:12px;">
+                <h2 style="color:#f1f5f9;margin:0 0 6px">rk.ai Admin Login</h2>
+                <p style="color:#94a3b8;margin:0 0 6px">Role: <strong style="color:#c96442">${req.adminRole.toUpperCase()}</strong></p>
+                <div style="background:#1e293b;border-radius:8px;padding:24px;text-align:center;margin-bottom:20px;">
+                  <p style="color:#64748b;font-size:12px;margin:0 0 8px;text-transform:uppercase;letter-spacing:0.1em">Your OTP</p>
+                  <p style="color:#c96442;font-size:48px;font-weight:900;letter-spacing:0.25em;margin:0">${otp}</p>
+                  <p style="color:#64748b;font-size:12px;margin:8px 0 0">Expires in 10 minutes</p>
+                </div>
+                <p style="color:#475569;font-size:12px">If you didn't request this, ignore this email.</p>
+              </div>`,
+          });
+          console.log(`✅ OTP email delivered to ${email}`);
+        } catch (mailErr) {
+          // Email failed but OTP still works — user can check Render logs
+          console.log(`⚠️ OTP email failed: ${mailErr.message}`);
+          console.log(`🔐 OTP (check logs): ${otp}`);
+        }
+      });
+    } else {
+      console.log(`⚠️ GMAIL_APP_PASSWORD not set — OTP only in logs above`);
+    }
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
