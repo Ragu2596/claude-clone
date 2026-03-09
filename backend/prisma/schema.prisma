@@ -210,3 +210,20 @@ model ModelTrial {
   @@unique([userId, modelId])
   @@index([userId])
 }
+
+// ── Admin Users (role-based access) ──────────────────────────
+// Super admin adds emails here with a role
+// Only emails in this table can access /#/admin
+model AdminUser {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String   @default("")
+  role      String   @default("viewer")  // superadmin | admin | viewer
+  addedBy   String                       // email of who added them
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([role])
+}
