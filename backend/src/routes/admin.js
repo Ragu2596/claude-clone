@@ -14,6 +14,14 @@
 //   5. Role determines what they can see/do
 
 import express    from 'express';
+import { authenticate } from '../middleware/auth.js';
+import { getAllUserStats, getBusinessSummary } from '../services/costTracker.js';
+import { PrismaClient } from '@prisma/client';
+
+const prisma   = new PrismaClient();
+const router   = express.Router();
+const otpStore = new Map();
+
 // ── Email via Resend API (HTTPS — works on Render free tier) ────
 async function sendEmail({ to, subject, html }) {
   const apiKey = process.env.RESEND_API_KEY;
@@ -26,28 +34,6 @@ async function sendEmail({ to, subject, html }) {
   const data = await res.json();
   if (!res.ok) throw new Error(data.message || 'Resend API error');
   return data;
-}
-import { authenticate } from '../middleware/auth.js';
-import { getAllUserStats, getBusinessSummary } from '../services/costTracker.js';
-import { PrismaClient } from '@prisma/client';
-
-const prisma  = new PrismaClient();
-const router  = express.Router();
-
-// ── OTP + Session store (in-memory, expires automatically) ───
-const otpStore = new Map();
-
-// ── Mailer ───────────────────────────────────────────────────
-function getMailer() {
-  return nodemailer.createTransport({
-    host:   'smtp.gmail.com',
-    port:   465,
-    secure: true,           // SSL
-    auth: {
-      user: process.env.ADMIN_EMAIL,
-      pass: process.env.GMAIL_APP_PASSWORD,  // Google App Password
-    },
-  });
 }
 
 // ── Check if user is an active admin (any role) ──────────────
