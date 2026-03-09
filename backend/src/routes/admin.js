@@ -68,11 +68,23 @@ async function getAdminUser(email) {
 
 // ── Middleware: must be active admin ─────────────────────────
 async function isAdmin(req, res, next) {
-  const admin = await getAdminUser(req.user.email);
-  if (!admin || !admin.active) return res.status(403).json({ error: 'Not authorized as admin' });
-  req.adminRole = admin.role;
-  req.adminUser = admin;
-  next();
+  try {
+    const admin = await getAdminUser(req.user.email);
+    if (!admin || !admin.active) {
+      const origin = req.headers.origin || process.env.FRONTEND_URL;
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      return res.status(403).json({ error: 'Not authorized as admin' });
+    }
+    req.adminRole = admin.role;
+    req.adminUser = admin;
+    next();
+  } catch(e) {
+    const origin = req.headers.origin || process.env.FRONTEND_URL;
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    return res.status(500).json({ error: e.message });
+  }
 }
 
 // ── Middleware: must be superadmin ────────────────────────────
@@ -83,14 +95,23 @@ function isSuperAdmin(req, res, next) {
 
 // ── Middleware: OTP session verified ─────────────────────────
 function otpVerified(req, res, next) {
+  const origin = req.headers.origin || process.env.FRONTEND_URL;
+  const setCors = () => {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  };
+
   const sessionToken = req.headers['x-admin-session'];
-  if (!sessionToken) return res.status(401).json({ error: 'OTP verification required' });
+  if (!sessionToken) {
+    setCors();
+    return res.status(401).json({ error: 'OTP verification required' });
+  }
   const entry = otpStore.get(`session:${sessionToken}`);
   if (!entry || Date.now() > entry.expiresAt) {
     otpStore.delete(`session:${sessionToken}`);
+    setCors();
     return res.status(401).json({ error: 'OTP session expired' });
   }
-  // Attach role to request from session
   req.sessionRole = entry.role;
   next();
 }

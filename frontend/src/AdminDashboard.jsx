@@ -94,8 +94,14 @@ function OTPScreen({ userEmail, onVerified }) {
         <div style={{ width: 64, height: 64, background: "#c96442", borderRadius: 16, display: "flex", alignItems: "center",
           justifyContent: "center", margin: "0 auto 20px", fontSize: 28 }}>🔐</div>
         <h2 style={{ color: "#f1f5f9", fontWeight: 800, fontSize: 22, margin: "0 0 6px" }}>Admin Verification</h2>
-        <p style={{ color: "#64748b", fontSize: 13, margin: "0 0 28px" }}>
-          {step === "send" ? "Verify your identity to access admin panel" : `Enter the OTP sent to ${userEmail}`}
+        {userEmail && (
+          <p style={{ color: "#c96442", fontSize: 13, fontWeight: 600, margin: "0 0 6px",
+            background: "#2d1a0e", padding: "4px 12px", borderRadius: 99, display: "inline-block" }}>
+            {userEmail}
+          </p>
+        )}
+        <p style={{ color: "#64748b", fontSize: 13, margin: "8px 0 28px" }}>
+          {step === "send" ? "Click below to send OTP to your email" : `Enter the 6-digit OTP sent to your email`}
         </p>
 
         {error && <div style={{ background: "#2d1515", border: "1px solid #7f1d1d", borderRadius: 8, padding: "10px 14px",
@@ -365,11 +371,13 @@ export default function AdminDashboard() {
     try {
       setLoading(true); setError(null);
       const [s, u] = await Promise.all([apiFetch("/api/admin/summary"), apiFetch("/api/admin/users")]);
-      if (s.error?.includes("expired") || s.error?.includes("OTP")) {
+      if (s.error?.includes("expired") || s.error?.includes("OTP") || s.error?.includes("verification")) {
         sessionStorage.removeItem(SESSION_KEY);
+        sessionStorage.removeItem("rk_admin_role");
         setOtpDone(false); return;
       }
-      if (s.error) throw new Error(s.error);
+      // Handle CORS/network error as session expired too
+      if (!s || s.error) throw new Error(s?.error || "Failed to load data");
       setSummary(s); setUsers(Array.isArray(u) ? u : []);
       setLastRefresh(new Date());
     } catch (e) { setError(e.message); }
