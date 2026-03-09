@@ -59,7 +59,29 @@ function similarity(a, b) {
   const union = wordsA.size + wordsB.size - intersection;
   return intersection / union;
 }
-
+async function getEmbedding(text) {
+  try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) return null;
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'models/text-embedding-004',
+          content: { parts: [{ text: text.slice(0, 2000) }] },
+        }),
+      }
+    );
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data?.embedding?.values || null;
+  } catch (e) {
+    console.warn('Embedding error:', e.message);
+    return null;
+  }
+}
 // ── Auto-detect topic from question ──────────────────────────────────────────
 function detectTopic(message) {
   const m = message.toLowerCase();
@@ -149,6 +171,31 @@ export async function checkCache(message, hasFile = false) {
       return exact.answer;
     }
 
+
+    // 2. Vector similarity search
+    const embedding = await getEmbedding(message);
+    if (embedding) {
+      const vectorStr = `[${embedding.join(',')}]`;
+      try {
+        const results = await prisma.$queryRaw`
+          SELECT id, question, answer, "hitCount",
+                 1 - (embedding <=> ${vectorStr}::vector) AS similarity
+          FROM "KnowledgeCache"
+          WHERE embedding IS NOT NULL
+          ORDER BY embedding <=> ${vectorStr}::vector
+          LIMIT 5
+        `;
+        for (const row of results) {
+          if (parseFloat(row.similarity) >= 0.88) {
+            await prisma.knowledgeCache.update({ where: { id: row.id }, data: { hitCount: { increment: 1 } } });
+            await trackCacheHit(true);
+            console.log(`⚡ Cache HIT (vector ${Math.round(row.similarity * 100)}%) | "${message.slice(0, 50)}"`);
+            return row.answer;
+          }
+        }
+      } catch (_) {}
+    }
+
     // 2. Fuzzy match — check recent 500 entries for similar questions
     // Only runs when no exact match found
     const recent = await prisma.knowledgeCache.findMany({
@@ -195,24 +242,26 @@ export async function storeInCache(message, answer, modelId = 'unknown', hasFile
     const topic   = detectTopic(message);
     const quality  = scoreQuality(message, answer);
 
-    await prisma.knowledgeCache.upsert({
-      where:  { questionHash: hash },
-      create: {
-        questionHash: hash,
-        question:     message.slice(0, 2000),
-        answer:       answer.slice(0, 8000),
-        model:        modelId,
-        topic,
-        quality,
-        hitCount:     1,
-        savedCost:    0,
-      },
-      update: {
-        // Only replace answer if new quality is higher
-        ...(quality > 0.6 ? { answer: answer.slice(0, 8000), quality, model: modelId } : {}),
-        updatedAt: new Date(),
-      },
-    });
+ const embedding = await getEmbedding(message);
+    const vectorStr = embedding ? `[${embedding.join(',')}]` : null;
+
+    if (vectorStr) {
+      await prisma.$executeRaw`
+        INSERT INTO "KnowledgeCache" (id, "questionHash", question, answer, model, topic, quality, embedding, "hitCount", "savedCost", "createdAt", "updatedAt")
+        VALUES (gen_random_uuid(), ${hash}, ${message.slice(0,2000)}, ${answer.slice(0,8000)}, ${modelId}, ${topic}, ${quality}, ${vectorStr}::vector, 1, 0, NOW(), NOW())
+        ON CONFLICT ("questionHash") DO UPDATE SET
+          answer = CASE WHEN ${quality} > "KnowledgeCache".quality THEN ${answer.slice(0,8000)} ELSE "KnowledgeCache".answer END,
+          quality = CASE WHEN ${quality} > "KnowledgeCache".quality THEN ${quality} ELSE "KnowledgeCache".quality END,
+          embedding = EXCLUDED.embedding,
+          "updatedAt" = NOW()
+      `;
+    } else {
+      await prisma.knowledgeCache.upsert({
+        where:  { questionHash: hash },
+        create: { questionHash: hash, question: message.slice(0,2000), answer: answer.slice(0,8000), model: modelId, topic, quality, hitCount: 1, savedCost: 0 },
+        update: { ...(quality > 0.6 ? { answer: answer.slice(0,8000), quality, model: modelId } : {}), updatedAt: new Date() },
+      });
+    }
 
     const cacheSize = await prisma.knowledgeCache.count();
     console.log(`💾 Cached Q&A | model=${modelId} | total=${cacheSize} | "${message.slice(0, 50)}"`);
