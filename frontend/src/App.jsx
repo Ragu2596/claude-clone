@@ -1329,7 +1329,7 @@ function InputBar({ onSend, streaming, onStop }) {
         <textarea ref={taRef} value={text} onChange={e => setText(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
           onPaste={handlePaste}
-          placeholder="How can rk.ai help you today? (Paste images with Cmd+V)" rows={1}
+          placeholder="How can rk.ai help you today?" rows={1}
           style={{ width: "100%", background: "none", border: "none", outline: "none", padding: "14px 16px 0", color: "var(--text)", fontSize: 15, lineHeight: 1.65, resize: "none", maxHeight: 200, overflowY: "auto", display: "block", fontFamily: "inherit" }} />
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px 10px" }}>
