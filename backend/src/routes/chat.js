@@ -428,15 +428,6 @@ function shouldSkipCache(message, existingMessageCount) {
   return contextual.some(p => lower.startsWith(p));
 }
 
-function shouldSkipCache(message, existingMessageCount) {
-  if (existingMessageCount > 0) return true;
-  if (message.length < 40) return true;
-  const lower = message.toLowerCase().trim();
-  const contextual = ['show me','give me','can you','what about','explain more',
-    'how about','also','another','more ','now ','then ','next ','make it',
-    'change ','update ','fix ','modify ','same ','that ','this ','it ','again'];
-  return contextual.some(p => lower.startsWith(p));
-}
 // ─── Main chat route ───────────────────────────────────────────
 router.post('/', authenticate, upload.single('file'), async (req, res) => {
   const { message, conversationId, model: requestedModel } = req.body;
