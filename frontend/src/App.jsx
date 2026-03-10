@@ -41,6 +41,9 @@ const ChevronDown   = ({size=14}) => <Icon size={size} sw={2} d="M6 9l6 6 6-6"/>
 const RefreshIcon   = ({size=14}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>;
 const CloseIcon     = ({size=13}) => <Icon size={size} sw={2.5} d="M18 6L6 18M6 6l12 12"/>;
 const PreviewIcon   = ({size=14}) => <Icon size={size} d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zM12 9a3 3 0 100 6 3 3 0 000-6z"/>;
+const DownloadIcon = ({size=14}) => <Icon size={size} d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>;
+const OpenIcon     = ({size=13}) => <Icon size={size} d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/>;
+const PrintIcon    = ({size=14}) => <Icon size={size} d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/>;
 const MenuIcon      = ({size=22}) => <Icon size={size} sw={2} d="M3 6h18M3 12h18M3 18h18"/>;
 const PencilIcon    = ({size=13}) => <Icon size={size} d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>;
 
@@ -98,6 +101,76 @@ initSettings();
 
 if (!document.getElementById("rk-css")) {
   const s = document.createElement("style"); s.id = "rk-css"; s.textContent = CSS; document.head.appendChild(s);
+}
+
+// ─── File utilities ───────────────────────────────────────────────────────────
+const FILE_EXT_MAP = {
+  javascript:"js",js:"js",typescript:"ts",ts:"ts",jsx:"jsx",tsx:"tsx",
+  python:"py",py:"py",java:"java",kotlin:"kt",swift:"swift",go:"go",
+  rust:"rs",cpp:"cpp",c:"c",cs:"cs",php:"php",ruby:"rb",
+  html:"html",css:"css",scss:"scss",xml:"xml",json:"json",
+  yaml:"yaml",yml:"yml",toml:"toml",sql:"sql",graphql:"graphql",
+  sh:"sh",bash:"sh",markdown:"md",md:"md",svg:"svg",csv:"csv",
+  dockerfile:"dockerfile",txt:"txt",
+};
+const MIME_MAP = {
+  html:"text/html",css:"text/css",js:"application/javascript",
+  json:"application/json",xml:"application/xml",svg:"image/svg+xml",
+  csv:"text/csv",md:"text/markdown",sql:"application/sql",
+};
+const PREVIEWABLE     = ["html","htm","svg"];
+const PRINTABLE_AS_PDF = ["html","htm","svg","md","markdown"];
+
+function getFileExt(lang) {
+  return FILE_EXT_MAP[lang?.toLowerCase()] || "txt";
+}
+function getMimeType(lang) {
+  return MIME_MAP[getFileExt(lang)] || "text/plain";
+}
+function downloadFile(code, lang, filename) {
+  const ext  = getFileExt(lang);
+  const name = filename || `rkai-file.${ext}`;
+  const blob = new Blob([code], { type: getMimeType(lang) + ";charset=utf-8" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href = url; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+function printAsPDF(code, lang) {
+  const ext = getFileExt(lang);
+  let html  = code;
+  if (ext === "md" || ext === "markdown") {
+    html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+      body{font-family:Georgia,serif;max-width:800px;margin:40px auto;padding:0 24px;line-height:1.7}
+      code{background:#f0f0f0;padding:2px 6px;border-radius:4px}
+      pre{background:#f5f5f5;padding:16px;border-radius:6px}
+    </style></head><body>${code.replace(/\n/g,"<br>")}</body></html>`;
+  } else if (!html.includes("<html")) {
+    html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${code}</body></html>`;
+  }
+  const w = window.open("","_blank");
+  w.document.write(html); w.document.close(); w.focus();
+  setTimeout(() => w.print(), 300);
+}
+function extractCodeBlocks(content) {
+  if (!content) return [];
+  const regex = /```(\w+)?\n?([\s\S]*?)```/g;
+  const blocks = []; let match;
+  while ((match = regex.exec(content)) !== null) {
+    const lang = (match[1] || "text").toLowerCase();
+    const code = match[2].trim();
+    if (code.length > 0) blocks.push({ lang, code });
+  }
+  return blocks;
+}
+function extractBestArtifact(content) {
+  const blocks = extractCodeBlocks(content);
+  if (blocks.length === 0) return null;
+  const FILE_LANGS = new Set(["html","xml","json","yaml","yml","svg","csv","sql","graphql","markdown","md","dockerfile"]);
+  const fileBlock  = blocks.find(b => FILE_LANGS.has(b.lang));
+  const best       = fileBlock || blocks.reduce((a,b) => b.code.length > a.code.length ? b : a);
+  if (best.code.split("\n").length < 5) return null;
+  return best;
 }
 
 const inputStyle = {
@@ -872,7 +945,7 @@ function CopyBtn({ text, iconOnly = false }) {
 }
 
 // ─── Message ──────────────────────────────────────────────────
-function Message({ msg, isLast, streaming, onArtifact, onRetry, onEdit }) {
+function Message({ msg, isLast, streaming, onArtifact, activeArtifactCode }) {
   const isUser = msg.role === "user";
   const [editing,  setEditing]  = useState(false);
   const [editText, setEditText] = useState(msg.content);
@@ -945,25 +1018,38 @@ function Message({ msg, isLast, streaming, onArtifact, onRetry, onEdit }) {
                 code({ node, inline, className, children, ...props }) {
                   const match = /language-(\w+)/.exec(className || "");
                   const code  = String(children).replace(/\n$/, "");
-                  if (!inline && match) return (
-                    <div style={{ borderRadius: 10, overflow: "hidden", border: "1px solid var(--border)", margin: "14px 0" }}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 14px", background: "#f3f3f3", borderBottom: "1px solid var(--border)" }}>
-                        <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text2)", fontFamily: "var(--mono)", letterSpacing: "0.04em" }}>{match[1]}</span>
-                        <div style={{ display: "flex", gap: 6 }}>
-                          {["html", "jsx", "tsx", "svg"].includes(match[1]) && (
-                            <button onClick={() => onArtifact && onArtifact(code, match[1])} style={{ background: "var(--orange)", border: "none", borderRadius: 5, padding: "3px 10px", color: "#fff", fontSize: 11, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-                              <PreviewIcon size={11} /> Preview
-                            </button>
-                          )}
-                          <CopyBtn text={code} />
-                        </div>
-                      </div>
-                      <SyntaxHighlighter style={oneLight} language={match[1]} PreTag="div"
-                        customStyle={{ margin: 0, padding: "14px 16px", fontSize: 13, fontFamily: "var(--mono)", background: "#fafafa", lineHeight: 1.55 }} {...props}>
-                        {code}
-                      </SyntaxHighlighter>
-                    </div>
-                  );
+                  if (!inline && match) {
+  const blockLang = (match[1] || "text").toLowerCase();
+  const ext       = getFileExt(blockLang);
+  const isActive  = activeArtifactCode === code;
+  return (
+    <div style={{ borderRadius: 10, overflow: "hidden", border: `1px solid ${isActive ? "var(--orange)" : "var(--border)"}`, margin: "14px 0", transition: "border-color .2s" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 12px", background: "#f3f3f3", borderBottom: "1px solid var(--border)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text2)", fontFamily: "var(--mono)", letterSpacing: "0.04em" }}>{blockLang}</span>
+          <span style={{ fontSize: 10, color: "var(--text3)" }}>· {code.split("\n").length} lines</span>
+        </div>
+        <div style={{ display: "flex", gap: 5 }}>
+          <button
+            onClick={() => onArtifact && onArtifact(code, blockLang)}
+            style={{ background: isActive ? "var(--orange)" : "var(--sidebar)", border: "1px solid var(--border)", borderRadius: 5, padding: "3px 9px", color: isActive ? "#fff" : "var(--text2)", fontSize: 11, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, transition: "all .15s" }}>
+            <OpenIcon size={11} />{isActive ? "Viewing" : "Open"}
+          </button>
+          <button
+            onClick={() => downloadFile(code, blockLang)}
+            style={{ background: "var(--sidebar)", border: "1px solid var(--border)", borderRadius: 5, padding: "3px 9px", color: "var(--text2)", fontSize: 11, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+            <DownloadIcon size={11} />.{ext}
+          </button>
+          <CopyBtn text={code} />
+        </div>
+      </div>
+      <SyntaxHighlighter style={oneLight} language={blockLang} PreTag="div"
+        customStyle={{ margin: 0, padding: "14px 16px", fontSize: 13, fontFamily: "var(--mono)", background: "#fafafa", lineHeight: 1.55 }} {...props}>
+        {code}
+      </SyntaxHighlighter>
+    </div>
+  );
+}
                   return <code style={{ background: "rgba(0,0,0,0.07)", borderRadius: 4, padding: "1px 5px", fontFamily: "var(--mono)", fontSize: 13 }} {...props}>{children}</code>;
                 },
                 p:          ({ children }) => <p style={{ marginBottom: 10, lineHeight: 1.75 }}>{children}</p>,
@@ -1412,29 +1498,105 @@ function Welcome({ onSend, user, isMobile }) {
 }
 
 // ─── Artifact Panel ───────────────────────────────────────────
-function ArtifactPanel({ code, lang, onClose, isMobile }) {
-  const [view, setView] = useState("preview");
-  const [key,  setKey]  = useState(0);
+function ArtifactPanel({ artifact, onClose, isMobile }) {
+  const { code, lang } = artifact;
+  const ext        = getFileExt(lang);
+  const canPreview = PREVIEWABLE.includes(ext);
+  const canPrint   = PRINTABLE_AS_PDF.includes(ext);
+
+  const [activeTab,    setActiveTab]    = useState(canPreview ? "preview" : "code");
+  const [iframeKey,    setIframeKey]    = useState(0);
+  const [downloadName, setDownloadName] = useState(`rkai-file.${ext}`);
+  const [editingName,  setEditingName]  = useState(false);
+
+  useEffect(() => {
+    setActiveTab(PREVIEWABLE.includes(getFileExt(lang)) ? "preview" : "code");
+    setDownloadName(`rkai-file.${getFileExt(lang)}`);
+  }, [code, lang]);
+
   return (
-    <div style={{ width: isMobile ? "100%" : 480, height: "100%", position: isMobile ? "fixed" : "relative", top: isMobile ? 0 : "auto", left: isMobile ? 0 : "auto", zIndex: isMobile ? 300 : "auto", borderLeft: "1px solid var(--border)", background: "#fff", display: "flex", flexDirection: "column" }}>
-      <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-        <div style={{ display: "flex", gap: 6 }}>
-          {["preview", "code"].map(v => (
-            <button key={v} onClick={() => setView(v)} style={{ padding: "4px 12px", borderRadius: 7, border: "1px solid var(--border)", background: view === v ? "var(--active)" : "none", fontSize: 12, fontWeight: view === v ? 600 : 400, color: "var(--text)", cursor: "pointer" }}>
-              {v === "preview" ? "Preview" : "Code"}
-            </button>
-          ))}
-        </div>
-        <div style={{ display: "flex", gap: 6 }}>
-          <ArtBtn onClick={() => setKey(k => k + 1)} title="Refresh"><RefreshIcon size={13} /></ArtBtn>
-          <ArtBtn onClick={() => navigator.clipboard.writeText(code)}><CopyIcon size={12} /><span style={{ fontSize: 12 }}>Copy</span></ArtBtn>
+    <div style={{ width: isMobile ? "100%" : 520, height: "100%", position: isMobile ? "fixed" : "relative", top: isMobile ? 0 : "auto", left: isMobile ? 0 : "auto", zIndex: isMobile ? 300 : "auto", borderLeft: "1px solid var(--border)", background: "#fff", display: "flex", flexDirection: "column", flexShrink: 0 }}>
+
+      {/* Header */}
+      <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 }}>
+
+        {/* Row 1: lang badge + filename + close */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4, background: "#f0ebe4", color: "var(--text2)", fontFamily: "var(--mono)", flexShrink: 0 }}>{lang || "text"}</span>
+            {editingName ? (
+              <input value={downloadName} onChange={e => setDownloadName(e.target.value)}
+                onBlur={() => setEditingName(false)}
+                onKeyDown={e => e.key === "Enter" && setEditingName(false)}
+                autoFocus
+                style={{ flex: 1, fontSize: 13, border: "1px solid var(--orange)", borderRadius: 5, padding: "2px 8px", outline: "none", fontFamily: "var(--mono)" }} />
+            ) : (
+              <button onClick={() => setEditingName(true)} title="Click to rename"
+                style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", background: "none", border: "none", cursor: "pointer", fontFamily: "var(--mono)", padding: "2px 6px", borderRadius: 4 }}
+                onMouseEnter={e => e.currentTarget.style.background = "var(--hover)"}
+                onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                {downloadName}
+              </button>
+            )}
+          </div>
           <ArtBtn onClick={onClose}><CloseIcon size={13} /></ArtBtn>
         </div>
+
+        {/* Row 2: tabs + action buttons */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", gap: 4 }}>
+            {canPreview && (
+              <button onClick={() => setActiveTab("preview")}
+                style={{ padding: "4px 12px", borderRadius: 7, border: "1px solid var(--border)", background: activeTab === "preview" ? "var(--active)" : "none", fontSize: 12, fontWeight: activeTab === "preview" ? 600 : 400, color: "var(--text)", cursor: "pointer" }}>
+                Preview
+              </button>
+            )}
+            <button onClick={() => setActiveTab("code")}
+              style={{ padding: "4px 12px", borderRadius: 7, border: "1px solid var(--border)", background: activeTab === "code" ? "var(--active)" : "none", fontSize: 12, fontWeight: activeTab === "code" ? 600 : 400, color: "var(--text)", cursor: "pointer" }}>
+              Code
+            </button>
+          </div>
+          <div style={{ display: "flex", gap: 5 }}>
+            {canPreview && <ArtBtn onClick={() => setIframeKey(k => k+1)} title="Refresh"><RefreshIcon size={13}/></ArtBtn>}
+            {canPrint   && <ArtBtn onClick={() => printAsPDF(code, lang)} title="Save as PDF"><PrintIcon size={12}/><span style={{fontSize:11}}>PDF</span></ArtBtn>}
+            <ArtBtn onClick={() => downloadFile(code, lang, downloadName)} title={`Download .${ext}`}>
+              <DownloadIcon size={12}/><span style={{fontSize:11}}>.{ext}</span>
+            </ArtBtn>
+            <ArtBtn onClick={() => navigator.clipboard.writeText(code)}>
+              <CopyIcon size={12}/><span style={{fontSize:11}}>Copy</span>
+            </ArtBtn>
+          </div>
+        </div>
       </div>
+
+      {/* Content */}
       <div style={{ flex: 1, overflow: "hidden" }}>
-        {view === "preview"
-          ? <iframe key={key} srcDoc={code} style={{ width: "100%", height: "100%", border: "none" }} sandbox="allow-scripts allow-same-origin" title="Preview" />
-          : <SyntaxHighlighter style={oneLight} language={lang} PreTag="div" customStyle={{ margin: 0, padding: 16, height: "100%", fontSize: 13, fontFamily: "var(--mono)", overflow: "auto", background: "#fafafa" }}>{code}</SyntaxHighlighter>}
+        {activeTab === "preview" && canPreview && (
+          <iframe key={iframeKey}
+            srcDoc={ext === "svg"
+              ? `<!DOCTYPE html><html><body style="margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#fafafa">${code}</body></html>`
+              : code}
+            style={{ width: "100%", height: "100%", border: "none" }}
+            sandbox="allow-scripts allow-same-origin" title="Preview" />
+        )}
+        {activeTab === "code" && (
+          <div style={{ height: "100%", overflow: "auto" }}>
+            <SyntaxHighlighter style={oneLight} language={lang || "text"} PreTag="div" showLineNumbers
+              customStyle={{ margin: 0, padding: 16, minHeight: "100%", fontSize: 13, fontFamily: "var(--mono)", background: "#fafafa", lineHeight: 1.6 }}>
+              {code}
+            </SyntaxHighlighter>
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div style={{ padding: "6px 14px", borderTop: "1px solid var(--border)", background: "#faf9f7", display: "flex", justifyContent: "space-between", flexShrink: 0 }}>
+        <span style={{ fontSize: 11, color: "var(--text3)", fontFamily: "var(--mono)" }}>
+          {code.split("\n").length} lines · {(new Blob([code]).size / 1024).toFixed(1)} KB
+        </span>
+        <span style={{ fontSize: 11, color: "var(--text3)" }}>
+          {canPreview ? "Live preview" : "Read-only"}
+        </span>
       </div>
     </div>
   );
@@ -1491,10 +1653,24 @@ export default function App() {
     sendMessage, stopStream, createProject, deleteProject,
   } = useChat();
 
-  const [artifact, setArtifact] = useState(null);
-  const bottomRef = useRef(null);
+const [artifact, setArtifact]   = useState(null);
+const bottomRef                  = useRef(null);
+const prevMsgCountRef            = useRef(0);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  useEffect(() => {
+  if (streaming) return;
+  const lastMsg = messages[messages.length - 1];
+  if (!lastMsg || lastMsg.role !== "assistant" || !lastMsg.content) return;
+  if (messages.length === prevMsgCountRef.current) return;
+  const best = extractBestArtifact(lastMsg.content);
+  if (best) setArtifact(best);
+  prevMsgCountRef.current = messages.length;
+}, [messages, streaming]);
+
+useEffect(() => {
+  if (messages.length === 0) { setArtifact(null); prevMsgCountRef.current = 0; }
+}, [activeId]);
   useEffect(() => { if (!isMobile) setSidebarOpen(false); }, [isMobile]);
 
   if (loading) return <LoadingScreen />;
@@ -1571,17 +1747,16 @@ export default function App() {
             ? <Welcome onSend={sendMessage} user={user} isMobile={isMobile} />
             : (
               <div style={{ maxWidth: 740, margin: "0 auto", padding: isMobile ? "8px 12px 16px" : "8px 24px 16px" }}>
-                {messages.map((m, i) => (
-                  <Message
-                    key={m.id}
-                    msg={m}
-                    isLast={i === messages.length - 1}
-                    streaming={streaming}
-                    onArtifact={(code, lang) => setArtifact({ code, lang })}
-                    onRetry={m.role === "assistant" ? handleRetry : undefined}
-                    onEdit={m.role === "user" ? handleEdit : undefined}
-                  />
-                ))}
+              <Message
+                key={m.id}
+                msg={m}
+                isLast={i === messages.length - 1}
+                streaming={streaming}
+                onArtifact={(code, lang) => setArtifact({ code, lang })}
+                onRetry={m.role === "assistant" ? handleRetry : undefined}
+                onEdit={m.role === "user" ? handleEdit : undefined}
+                activeArtifactCode={artifact?.code}
+              />
                 <div ref={bottomRef} />
               </div>
             )}
@@ -1627,7 +1802,7 @@ export default function App() {
       </div>
 
       {/* Artifact panel */}
-      {artifact && <ArtifactPanel code={artifact.code} lang={artifact.lang} onClose={() => setArtifact(null)} isMobile={isMobile} />}
+      {artifact && <ArtifactPanel artifact={artifact} onClose={() => setArtifact(null)} isMobile={isMobile} />}
 
       {/* Pricing modal */}
       {showPricing && <PricingPage onClose={() => setShowPricing(false)} />}

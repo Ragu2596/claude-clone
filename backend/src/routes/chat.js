@@ -583,7 +583,7 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
     const userLang     = req.body.lang || 'en';
     const langInstr    = LANG_INSTRUCTIONS[userLang] || '';
     const userMemory   = await getUserMemory(req.user.id);
-    const basePrompt   = conv.project?.systemPrompt || 'You are rk.ai, a helpful AI assistant. Be concise, accurate and helpful.';
+    const basePrompt   = conv.project?.systemPrompt || BASE_SYSTEM_PROMPT;
     const memoryPrompt = userMemory ? `${basePrompt}\n\n--- What I know about this user from past conversations ---\n${userMemory}\n---` : basePrompt;
     const systemPrompt = langInstr ? `${memoryPrompt}
 
