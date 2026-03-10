@@ -69,7 +69,8 @@ IMPORTANT — always follow these rules:
    - "Create a Word doc" → generate content in \`\`\`markdown
    - "Create CSV/Excel" → generate \`\`\`csv with real data
    - Multiple files → one code block per file with a filename comment at the top
-3. Be concise — no unnecessary disclaimers.`;
+3. Always consider the full conversation history when answering follow-up questions.
+4. Be concise — no unnecessary disclaimers. NEVER say you cannot create or generate files — always produce the content.`;
 
 function autoTitle(text) {
   return text.replace(/[^a-zA-Z0-9 ]/g, ' ').trim().split(' ').filter(Boolean).slice(0, 6).join(' ') || 'New Chat';
