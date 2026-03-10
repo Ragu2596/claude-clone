@@ -499,7 +499,7 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
     }
 
     // Step 4: Enforce model access by plan
-    let chosenModel = await selectModel(requestedModel);
+    let chosenModel = selectModel(requestedModel);
     if (!planAllowsModel(chosenModel, userPlan)) {
       console.log(`🔒 Model ${requestedModel} requires ${chosenModel.requiredPlan}, user has ${userPlan} — falling back to auto`);
       chosenModel = MODELS['auto'];
