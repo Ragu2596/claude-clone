@@ -1747,6 +1747,7 @@ useEffect(() => {
             ? <Welcome onSend={sendMessage} user={user} isMobile={isMobile} />
             : (
               <div style={{ maxWidth: 740, margin: "0 auto", padding: isMobile ? "8px 12px 16px" : "8px 24px 16px" }}>
+              {messages.map((m, i) => (
               <Message
                 key={m.id}
                 msg={m}
@@ -1757,6 +1758,7 @@ useEffect(() => {
                 onEdit={m.role === "user" ? handleEdit : undefined}
                 activeArtifactCode={artifact?.code}
               />
+              ))}
                 <div ref={bottomRef} />
               </div>
             )}
