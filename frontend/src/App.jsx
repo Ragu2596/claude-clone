@@ -945,7 +945,7 @@ function CopyBtn({ text, iconOnly = false }) {
 }
 
 // ─── Message ──────────────────────────────────────────────────
-function Message({ msg, isLast, streaming, onArtifact, activeArtifactCode }) {
+function Message({ msg, isLast, streaming, onArtifact, activeArtifactCode, onRetry, onEdit }) {
   const isUser = msg.role === "user";
   const [editing,  setEditing]  = useState(false);
   const [editText, setEditText] = useState(msg.content);
