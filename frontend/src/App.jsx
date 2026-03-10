@@ -1518,56 +1518,36 @@ function ArtifactPanel({ artifact, onClose, isMobile }) {
     <div style={{ width: isMobile ? "100%" : 520, height: "100%", position: isMobile ? "fixed" : "relative", top: isMobile ? 0 : "auto", left: isMobile ? 0 : "auto", zIndex: isMobile ? 300 : "auto", borderLeft: "1px solid var(--border)", background: "#fff", display: "flex", flexDirection: "column", flexShrink: 0 }}>
 
       {/* Header */}
-      <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 }}>
-
-        {/* Row 1: lang badge + filename + close */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4, background: "#f0ebe4", color: "var(--text2)", fontFamily: "var(--mono)", flexShrink: 0 }}>{lang || "text"}</span>
-            {editingName ? (
-              <input value={downloadName} onChange={e => setDownloadName(e.target.value)}
-                onBlur={() => setEditingName(false)}
-                onKeyDown={e => e.key === "Enter" && setEditingName(false)}
-                autoFocus
-                style={{ flex: 1, fontSize: 13, border: "1px solid var(--orange)", borderRadius: 5, padding: "2px 8px", outline: "none", fontFamily: "var(--mono)" }} />
-            ) : (
-              <button onClick={() => setEditingName(true)} title="Click to rename"
-                style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", background: "none", border: "none", cursor: "pointer", fontFamily: "var(--mono)", padding: "2px 6px", borderRadius: 4 }}
-                onMouseEnter={e => e.currentTarget.style.background = "var(--hover)"}
-                onMouseLeave={e => e.currentTarget.style.background = "none"}>
-                {downloadName}
-              </button>
-            )}
-          </div>
-          <ArtBtn onClick={onClose}><CloseIcon size={13} /></ArtBtn>
-        </div>
-
-        {/* Row 2: tabs + action buttons */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", gap: 4 }}>
-            {canPreview && (
-              <button onClick={() => setActiveTab("preview")}
-                style={{ padding: "4px 12px", borderRadius: 7, border: "1px solid var(--border)", background: activeTab === "preview" ? "var(--active)" : "none", fontSize: 12, fontWeight: activeTab === "preview" ? 600 : 400, color: "var(--text)", cursor: "pointer" }}>
-                Preview
-              </button>
-            )}
-            <button onClick={() => setActiveTab("code")}
-              style={{ padding: "4px 12px", borderRadius: 7, border: "1px solid var(--border)", background: activeTab === "code" ? "var(--active)" : "none", fontSize: 12, fontWeight: activeTab === "code" ? 600 : 400, color: "var(--text)", cursor: "pointer" }}>
-              Code
-            </button>
-          </div>
-          <div style={{ display: "flex", gap: 5 }}>
-            {canPreview && <ArtBtn onClick={() => setIframeKey(k => k+1)} title="Refresh"><RefreshIcon size={13}/></ArtBtn>}
-            {canPrint   && <ArtBtn onClick={() => printAsPDF(code, lang)} title="Save as PDF"><PrintIcon size={12}/><span style={{fontSize:11}}>PDF</span></ArtBtn>}
-            <ArtBtn onClick={() => downloadFile(code, lang, downloadName)} title={`Download .${ext}`}>
-              <DownloadIcon size={12}/><span style={{fontSize:11}}>.{ext}</span>
-            </ArtBtn>
-            <ArtBtn onClick={() => navigator.clipboard.writeText(code)}>
-              <CopyIcon size={12}/><span style={{fontSize:11}}>Copy</span>
-            </ArtBtn>
-          </div>
-        </div>
-      </div>
+<div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0, gap: 12 }}>
+  <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
+    {editingName ? (
+      <input value={downloadName} onChange={e => setDownloadName(e.target.value)}
+        onBlur={() => setEditingName(false)} onKeyDown={e => e.key === "Enter" && setEditingName(false)} autoFocus
+        style={{ fontSize: 14, fontWeight: 600, border: "1px solid var(--orange)", borderRadius: 6, padding: "3px 10px", outline: "none", fontFamily: "inherit", flex: 1 }} />
+    ) : (
+      <button onClick={() => setEditingName(true)} title="Click to rename"
+        style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", background: "none", border: "none", cursor: "pointer", padding: "2px 4px", borderRadius: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 260, textAlign: "left" }}
+        onMouseEnter={e => e.currentTarget.style.background = "var(--hover)"}
+        onMouseLeave={e => e.currentTarget.style.background = "none"}>
+        {downloadName}
+      </button>
+    )}
+    <span style={{ fontSize: 12, color: "var(--text3)", flexShrink: 0 }}>· {lang || "text"}</span>
+  </div>
+  <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
+    {canPreview && (
+      <button onClick={() => setActiveTab(activeTab === "preview" ? "code" : "preview")}
+        style={{ padding: "5px 10px", borderRadius: 6, border: "1px solid var(--border)", background: activeTab === "preview" ? "var(--active)" : "none", fontSize: 12, fontWeight: 500, color: "var(--text)", cursor: "pointer" }}>
+        {activeTab === "preview" ? "Code" : "Preview"}
+      </button>
+    )}
+    {canPreview && <ArtBtn onClick={() => setIframeKey(k => k+1)} title="Refresh"><RefreshIcon size={13}/></ArtBtn>}
+    {canPrint && <ArtBtn onClick={() => printAsPDF(code, lang)} title="Save as PDF"><PrintIcon size={12}/><span style={{fontSize:11}}>PDF</span></ArtBtn>}
+    <ArtBtn onClick={() => navigator.clipboard.writeText(code)}><CopyIcon size={12}/><span style={{fontSize:11}}>Copy</span></ArtBtn>
+    <ArtBtn onClick={() => downloadFile(code, lang, downloadName)}><DownloadIcon size={12}/><span style={{fontSize:11}}>Download</span></ArtBtn>
+    <ArtBtn onClick={onClose}><CloseIcon size={13}/></ArtBtn>
+  </div>
+</div>
 
       {/* Content */}
       <div style={{ flex: 1, overflow: "hidden" }}>
