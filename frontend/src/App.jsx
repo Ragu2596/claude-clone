@@ -699,7 +699,7 @@ function Sidebar({ conversations, projects, activeId, activeProjectId, selectCon
         {conversations.length === 0 && (
           <p style={{ fontSize: 13, color: "var(--text3)", padding: "4px 10px" }}>No conversations yet</p>
         )}
-        {conversations.map(c => (
+        {conversations.filter(c => c.title !== 'New Chat' || c.id === activeId).map(c => (
           <SideItem key={c.id} icon={<ChatIcon />} label={c.title} isActive={activeId === c.id}
             hovered={hovConv === c.id} onHover={setHovConv} id={c.id}
             onSelect={() => go(() => selectConv(c.id))} onDelete={() => deleteConv(c.id)} />
