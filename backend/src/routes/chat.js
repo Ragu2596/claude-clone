@@ -462,6 +462,7 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
     }
 
     // Step 3: Check rate limits (hourly / daily / weekly rolling windows)
+    const model = await selectModel(requestedModel);
     const rateLimit = await checkRateLimit(req.user.id, userPlan, model.free);
     if (rateLimit.exceeded) {
       const { window, count, limit, retryAt, dayCount, dayLimit, weekCount, weekLimit } = rateLimit;
