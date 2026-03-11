@@ -139,20 +139,19 @@ const EXCLUDED_MODELS = [
 ];
 
 async function selectModel(requested) {
+  if (requested === 'auto') return MODELS['auto'];
   try {
     const { PrismaClient } = await import('@prisma/client');
     const p = new PrismaClient();
     const m = await p.modelConfig.findFirst({
       where: {
-        modelId:  requested === 'auto' ? undefined : requested,
-        enabled:  true,
-        // Never select guard/safety/audio models for chat
+        modelId: requested,
+        enabled: true,
         NOT: { modelId: { in: EXCLUDED_MODELS } },
       },
     });
     if (m) return { provider: m.provider, id: m.modelId, requiredPlan: m.requiredPlan, free: !m.requiredPlan };
   } catch {}
-  // fallback to static
   return MODELS[requested] || MODELS['auto'];
 }
 
