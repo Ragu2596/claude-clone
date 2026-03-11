@@ -108,7 +108,7 @@ const MODELS = {
 //   daily   = fair use           (rolling 24h)
 //   weekly  = heavy use cap      (rolling 7d)
 const RATE_LIMITS = {
-  free:    { fiveHour: 3,   daily: 5,    weekly: 20    }, // very limited — just to try
+  free:    { fiveHour: 9999, daily: 99999, weekly: 999999 }, // very limited — just to try
   starter: { fiveHour: 30,  daily: 100,  weekly: 500   }, // ₹499/mo — reasonable daily use
   pro:     { fiveHour: 60,  daily: 500,  weekly: 3000  }, // ₹999/mo — power users
   max:     { fiveHour: 150, daily: 2000, weekly: 10000 }, // ₹1999/mo — unlimited feel
@@ -273,7 +273,8 @@ async function checkModelDailyLimit(userId, modelId, userPlan) {
 }
 
 // ─── Main rate limit check (5hr window + daily + weekly) ─────
-async function checkRateLimit(userId, userPlan) {
+async function checkRateLimit(userId, userPlan, modelFree = false) {
+  if (modelFree) return { exceeded: false };
   const limits = RATE_LIMITS[userPlan] || RATE_LIMITS.free;
   const now    = Date.now();
 
@@ -461,7 +462,7 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
     }
 
     // Step 3: Check rate limits (hourly / daily / weekly rolling windows)
-    const rateLimit = await checkRateLimit(req.user.id, userPlan);
+    const rateLimit = await checkRateLimit(req.user.id, userPlan, model.free);
     if (rateLimit.exceeded) {
       const { window, count, limit, retryAt, dayCount, dayLimit, weekCount, weekLimit } = rateLimit;
 
