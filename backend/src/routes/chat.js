@@ -620,7 +620,7 @@ ${langInstr}` : basePrompt;
           model: 'llama-3.3-70b-versatile', systemPrompt, history, res,
         });
       } catch {
-        fullResponse = await streamAnthropic('claude-haiku-4-5-20251001', systemPrompt, history, res);
+        fullResponse = await streamOpenAICompatible({ apiKey: process.env.GROQ_API_KEY, baseURL: 'https://api.groq.com/openai/v1', model: 'llama-3.1-8b-instant', systemPrompt, history, res });
       }
     }
 
