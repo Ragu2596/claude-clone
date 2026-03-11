@@ -974,7 +974,9 @@ function Message({ msg, isLast, streaming, onArtifact, activeArtifactCode, onRet
           </div>
         ) : (
           <div style={{ background: "var(--user-bubble)", borderRadius: 18, borderBottomRightRadius: 4, padding: "11px 16px", color: "#fff", fontSize: 15, lineHeight: 1.65 }}>
-            {msg.content}
+            {msg.content.length > 500
+              ? <div><div style={{whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{msg.content.slice(0,500)}...</div><button onClick={()=>setExpanded&&setExpanded(e=>!e)} style={{marginTop:6,fontSize:12,color:"rgba(255,255,255,0.7)",background:"none",border:"none",cursor:"pointer",padding:0}}>Show full message</button></div>
+              : <span style={{whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{msg.content}</span>}
           </div>
         )}
         {/* Timestamp + Edit button */}
