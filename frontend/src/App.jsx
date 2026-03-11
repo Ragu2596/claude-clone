@@ -1430,7 +1430,7 @@ function InputBar({ onSend, streaming, onStop }) {
             </button>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <ModelSelector value={selectedModel} onChange={setModel} />
+            {user?.plan !== 'free' && <ModelSelector value={selectedModel} onChange={setModel} />}
             {streaming ? (
               <button onClick={onStop} style={{ width: 32, height: 32, borderRadius: 8, background: "var(--text)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                 onMouseEnter={e => e.currentTarget.style.background = "#333"}
