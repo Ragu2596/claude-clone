@@ -949,6 +949,7 @@ function Message({ msg, isLast, streaming, onArtifact, activeArtifactCode, onRet
   const isUser = msg.role === "user";
   const [editing,  setEditing]  = useState(false);
   const [editText, setEditText] = useState(msg.content);
+  const [expanded, setExpanded] = useState(false);
 
   // ── User message ──────────────────────────────────────────────
   if (isUser) return (
@@ -974,7 +975,7 @@ function Message({ msg, isLast, streaming, onArtifact, activeArtifactCode, onRet
           </div>
         ) : (
           <div style={{ background: "var(--user-bubble)", borderRadius: 18, borderBottomRightRadius: 4, padding: "11px 16px", color: "#fff", fontSize: 15, lineHeight: 1.65 }}>
-            {(()=>{const [exp,setExp]=React.useState(false);if(msg.content.length<=300)return <span style={{whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{msg.content}</span>;return <div><div style={{background:"rgba(0,0,0,0.15)",borderRadius:10,padding:"8px 10px",fontSize:12,lineHeight:1.5,maxHeight:exp?"none":"140px",overflow:"hidden",position:"relative",wordBreak:"break-word",whiteSpace:"pre-wrap"}}>{msg.content}{!exp&&<div style={{position:"absolute",bottom:0,left:0,right:0,height:40,background:"linear-gradient(transparent,rgba(0,0,0,0.3))",borderRadius:"0 0 10px 10px"}}/>}</div><button onClick={()=>setExp(e=>!e)} style={{marginTop:4,fontSize:11,color:"rgba(255,255,255,0.6)",background:"none",border:"none",cursor:"pointer",padding:0}}>{exp?"Show less":`Show more (${msg.content.length} chars)`}</button></div>;})()}
+            {msg.content.length<=300 ? <span style={{whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{msg.content}</span> : <div><div style={{background:"rgba(0,0,0,0.15)",borderRadius:10,padding:"8px 10px",fontSize:12,lineHeight:1.5,maxHeight:expanded?"none":"140px",overflow:"hidden",position:"relative",wordBreak:"break-word",whiteSpace:"pre-wrap"}}>{msg.content}{!expanded&&<div style={{position:"absolute",bottom:0,left:0,right:0,height:40,background:"linear-gradient(transparent,rgba(0,0,0,0.3))",borderRadius:"0 0 10px 10px"}}/>}</div><button onClick={()=>setExpanded(e=>!e)} style={{marginTop:4,fontSize:11,color:"rgba(255,255,255,0.6)",background:"none",border:"none",cursor:"pointer",padding:0}}>{expanded?"Show less":`Show more (${msg.content.length} chars)`}</button></div>}
           </div>
         )}
         {/* Timestamp + Edit button */}
