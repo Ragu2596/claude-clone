@@ -1326,7 +1326,7 @@ function AttachMenu({ onFile, onScreenshot, webSearch, onToggleWebSearch, onClos
 }
 
 // ─── InputBar ─────────────────────────────────────────────────
-function InputBar({ onSend, streaming, onStop }) {
+function InputBar({ onSend, streaming, onStop, userPlan }) {
   const [text, setText]             = useState("");
   const [file, setFile]             = useState(null);
   const [selectedModel, setModel]   = useState("auto");
@@ -1430,7 +1430,7 @@ function InputBar({ onSend, streaming, onStop }) {
             </button>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {user?.plan !== 'free' && <ModelSelector value={selectedModel} onChange={setModel} />}
+            {userPlan !== 'free' && <ModelSelector value={selectedModel} onChange={setModel} />}
             {streaming ? (
               <button onClick={onStop} style={{ width: 32, height: 32, borderRadius: 8, background: "var(--text)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                 onMouseEnter={e => e.currentTarget.style.background = "#333"}
@@ -1782,7 +1782,7 @@ useEffect(() => {
 
         {/* Input */}
         <div style={{ maxWidth: 780, width: "100%", margin: "0 auto", alignSelf: "stretch" }}>
-          <InputBar onSend={sendMessage} streaming={streaming} onStop={stopStream} />
+          <InputBar onSend={sendMessage} streaming={streaming} onStop={stopStream} userPlan={user?.plan} />
         </div>
       </div>
 
