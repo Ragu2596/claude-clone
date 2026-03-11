@@ -488,6 +488,13 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
 
     const { dayCount, dayLimit, weekCount, weekLimit, hourCount, hourLimit } = rateLimit;
 
+    // Step 4: Enforce model access by plan
+    let chosenModel = selectModel(requestedModel);
+    if (!planAllowsModel(chosenModel, userPlan)) {
+      console.log(`🔒 Model  requires , user has  — falling back to auto`);
+      chosenModel = MODELS['auto'];
+    }
+
     // Step 3a: Trial check — free users get 3 msgs per paid model
     let trialInfo = null;
     if (userPlan === 'free' && chosenModel.requiredPlan) {
@@ -509,13 +516,6 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
     const budgetExhausted = userPlan !== 'free' && !budget.hasbudget;
     if (budgetExhausted) {
       console.log(`💸 Budget exhausted: user=${req.user.id} plan=${userPlan} ${budget.used}/${budget.limit}µ$ — falling back to free model`);
-    }
-
-    // Step 4: Enforce model access by plan
-    let chosenModel = selectModel(requestedModel);
-    if (!planAllowsModel(chosenModel, userPlan)) {
-      console.log(`🔒 Model ${requestedModel} requires ${chosenModel.requiredPlan}, user has ${userPlan} — falling back to auto`);
-      chosenModel = MODELS['auto'];
     }
 
     // Step 5: Check per-model daily limit (e.g. Opus max 20/day)
