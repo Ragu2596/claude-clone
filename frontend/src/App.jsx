@@ -1543,7 +1543,10 @@ function ArtifactPanel({ artifact, onClose, isMobile }) {
     )}
     {canPreview && <ArtBtn onClick={() => setIframeKey(k => k+1)} title="Refresh"><RefreshIcon size={13}/></ArtBtn>}
     {canPrint && <ArtBtn onClick={() => printAsPDF(code, lang)} title="Save as PDF"><PrintIcon size={12}/><span style={{fontSize:11}}>PDF</span></ArtBtn>}
-    <ArtBtn onClick={() => navigator.clipboard.writeText(code)}><CopyIcon size={12}/><span style={{fontSize:11}}>Copy</span></ArtBtn>
+    <div style={{ display: "flex", alignItems: "center", border: "1px solid var(--border)", borderRadius: 6, overflow: "hidden" }}>
+    <ArtBtn onClick={() => navigator.clipboard.writeText(code)} style={{ borderRadius: 0, border: "none" }}><CopyIcon size={12}/><span style={{fontSize:11}}>Copy</span></ArtBtn>
+    <ArtBtn style={{ borderRadius: 0, border: "none", borderLeft: "1px solid var(--border)", padding: "5px 6px" }}><span style={{fontSize:10}}>▾</span></ArtBtn>
+    </div>
     <ArtBtn onClick={() => downloadFile(code, lang, downloadName)}><DownloadIcon size={12}/><span style={{fontSize:11}}>Download</span></ArtBtn>
     <ArtBtn onClick={onClose}><CloseIcon size={13}/></ArtBtn>
   </div>
