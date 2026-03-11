@@ -461,9 +461,10 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
       });
     }
 
-    // Step 3: Check rate limits (hourly / daily / weekly rolling windows)
-    const model = await selectModel(requestedModel);
-    const rateLimit = await checkRateLimit(req.user.id, userPlan, model.free);
+    // Step 3: Select model + Check rate limits
+    let chosenModel = await selectModel(requestedModel);
+    
+    const rateLimit = await checkRateLimit(req.user.id, userPlan, chosenModel.free);
     if (rateLimit.exceeded) {
       const { window, count, limit, retryAt, dayCount, dayLimit, weekCount, weekLimit } = rateLimit;
 
@@ -490,7 +491,7 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
     const { dayCount, dayLimit, weekCount, weekLimit, hourCount, hourLimit } = rateLimit;
 
     // Step 4: Enforce model access by plan
-    let chosenModel = selectModel(requestedModel);
+
     if (!planAllowsModel(chosenModel, userPlan)) {
       console.log(`🔒 Model  requires , user has  — falling back to auto`);
       chosenModel = MODELS['auto'];
