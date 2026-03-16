@@ -1641,7 +1641,16 @@ const [artifact, setArtifact]   = useState(null);
 const bottomRef                  = useRef(null);
 const prevMsgCountRef            = useRef(0);
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  const containerRef = useRef(null);
+useEffect(() => {
+  const container = containerRef.current;
+  if (!container) return;
+  const { scrollTop, scrollHeight, clientHeight } = container;
+  const isNearBottom = scrollHeight - scrollTop - clientHeight < 120;
+  if (isNearBottom) {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }
+}, [messages]);
   useEffect(() => {
   if (streaming) return;
   const lastMsg = messages[messages.length - 1];
@@ -1726,7 +1735,7 @@ useEffect(() => {
         </div>
 
         {/* Messages */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
+        <div ref={containerRef} style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
           {messages.length === 0
             ? <Welcome onSend={sendMessage} user={user} isMobile={isMobile} />
             : (
