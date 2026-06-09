@@ -1,38 +1,22 @@
-// frontend/src/services/sse.js
-// Parses SSE streams. Returns an async generator of parsed events.
-// useChat.js consumes this — no raw fetch/ReadableStream there.
+// backend/src/lib/sse.js
+// Server-Sent Events helpers for backend routes.
 
-export async function* parseSSEStream(response) {
-  const reader  = response.body.getReader();
-  const decoder = new TextDecoder();
-  let   buffer  = '';
+import { config } from '../config/index.js';
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
+// Write one SSE data frame to the response
+export function send(res, data) {
+  res.write('data: ' + JSON.stringify(data) + '\n\n');
+  if (res.flush) res.flush();
+}
 
-    buffer += decoder.decode(value, { stream: true });
-
-    // SSE messages are separated by double newline
-    const blocks = buffer.split('\n\n');
-    buffer = blocks.pop() ?? '';
-
-    for (const block of blocks) {
-      const lines = block.split('\n');
-      let eventType = 'message';
-      let data      = '';
-
-      for (const line of lines) {
-        if (line.startsWith('event: ')) eventType = line.slice(7).trim();
-        if (line.startsWith('data: '))  data      = line.slice(6).trim();
-      }
-
-      if (!data) continue;
-
-      let parsed;
-      try { parsed = JSON.parse(data); } catch { continue; }
-
-      yield { type: eventType, data: parsed };
-    }
-  }
+// Set all required SSE headers and call writeHead
+export function startSSE(res) {
+  res.writeHead(200, {
+    'Content-Type':                     'text/event-stream',
+    'Cache-Control':                    'no-cache, no-transform',
+    'Connection':                       'keep-alive',
+    'X-Accel-Buffering':                'no',
+    'Access-Control-Allow-Origin':      config.frontendUrl,
+    'Access-Control-Allow-Credentials': 'true',
+  });
 }
