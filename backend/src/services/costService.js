@@ -95,3 +95,60 @@ export async function activatePlanBudget(userId, plan) {
   });
   console.log(`💰 Budget activated: ${userId} → ${plan} → $${(budget / 1_000_000).toFixed(2)}/mo`);
 }
+
+// ── Admin stats (moved from costTracker.js) ───────────────────────────────────
+export async function getAllUserStats() {
+  const now        = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const [users, monthlyPayments, monthlyUsage] = await Promise.all([
+    prisma.user.findMany({
+      select: { id: true, name: true, email: true, avatar: true, plan: true, planExpiresAt: true, createdAt: true, apiCostUsed: true, apiCostLimit: true, apiCostReset: true, _count: { select: { conversations: true, apiUsageLogs: true } } },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.payment.groupBy({ by: ['userId'], _sum: { amount: true }, where: { createdAt: { gte: monthStart }, status: 'paid' } }),
+    prisma.apiUsageLog.groupBy({ by: ['userId'], _sum: { costMicro: true }, where: { createdAt: { gte: monthStart } } }),
+  ]);
+
+  const revenueMap = Object.fromEntries(monthlyPayments.map(p => [p.userId, p._sum.amount || 0]));
+  const costMap    = Object.fromEntries(monthlyUsage.map(u => [u.userId, u._sum.costMicro || 0]));
+
+  return users.map(u => {
+    const revenueInr = Math.round((revenueMap[u.id] || 0) / 100);
+    const costMicro  = costMap[u.id] || 0;
+    const costInr    = Math.round((costMicro / 1_000_000) * 84);
+    const budgetPct  = u.apiCostLimit > 0 ? Math.round((u.apiCostUsed / u.apiCostLimit) * 100) : 0;
+    return { ...u, messageCount: u._count.apiUsageLogs || 0, revenueInr, costInr, costUsd: parseFloat((costMicro / 1_000_000).toFixed(4)), profitInr: revenueInr - costInr, budgetPct, isExpired: u.plan !== 'free' && u.planExpiresAt && u.planExpiresAt < now };
+  });
+}
+
+export async function getBusinessSummary() {
+  const now        = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastMonth  = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+  const [totalUsers, paidUsers, revenueAll, revenueLast, apiCostThis, apiCostLast, planBreakdown, topModels] = await Promise.all([
+    prisma.user.count(),
+    prisma.user.count({ where: { plan: { not: 'free' } } }),
+    prisma.payment.aggregate({ _sum: { amount: true }, where: { status: 'paid' } }),
+    prisma.payment.aggregate({ _sum: { amount: true }, where: { createdAt: { gte: lastMonth, lt: monthStart }, status: 'paid' } }),
+    prisma.apiUsageLog.aggregate({ _sum: { costMicro: true }, where: { createdAt: { gte: monthStart } } }),
+    prisma.apiUsageLog.aggregate({ _sum: { costMicro: true }, where: { createdAt: { gte: lastMonth, lt: monthStart } } }),
+    prisma.user.groupBy({ by: ['plan'], _count: { id: true } }),
+    prisma.apiUsageLog.groupBy({ by: ['model'], _sum: { costMicro: true }, _count: { id: true }, where: { createdAt: { gte: monthStart } }, orderBy: { _sum: { costMicro: 'desc' } }, take: 5 }),
+  ]);
+
+  const revINR    = Math.round((revenueAll._sum.amount || 0) / 100);
+  const costMicro = apiCostThis._sum.costMicro || 0;
+  const costINR   = Math.round((costMicro / 1_000_000) * 84);
+  const profitINR = revINR - costINR;
+
+  return {
+    totalUsers, paidUsers, freeUsers: totalUsers - paidUsers,
+    revenueInr: revINR, lastRevenueInr: Math.round((revenueLast._sum.amount || 0) / 100),
+    costInr: costINR, lastCostInr: Math.round(((apiCostLast._sum.costMicro || 0) / 1_000_000) * 84),
+    profitInr: profitINR, marginPct: revINR > 0 ? Math.round((profitINR / revINR) * 100) : 0,
+    planBreakdown: Object.fromEntries(planBreakdown.map(p => [p.plan, p._count.id])),
+    topModels: topModels.map(m => ({ model: m.model, calls: m._count.id, costInr: Math.round(((m._sum.costMicro || 0) / 1_000_000) * 84) })),
+  };
+}
