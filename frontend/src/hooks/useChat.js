@@ -8,13 +8,17 @@ export function useChat() {
   const [conversations,    setConversations]    = useState([]);
   const [activeId,         setActiveId]         = useState(null);
   const [messages,         setMessages]         = useState([]);
-  const [streaming,        setStreaming]        = useState(false);
+  const [streaming,        setStreaming]         = useState(false);
   const [projects,         setProjects]         = useState([]);
   const [activeProjectId,  setActiveProjectId]  = useState(null);
-  const [usage,            setUsage]            = useState(null);       // ✅ { hourCount, dayCount, weekCount, ...limits, plan }
-  const [rateLimit,        setRateLimit]        = useState(null);       // ✅ { window, retryAt, ... } when blocked
-  const [upgradeRequired,  setUpgradeRequired]  = useState(false);     // ✅ file upload blocked
-  const [trialExhausted,   setTrialExhausted]   = useState(null);       // ✅ { modelId } when trial used up
+  const [usage,            setUsage]            = useState(null);
+  const [rateLimit,        setRateLimit]        = useState(null);
+  const [upgradeRequired,  setUpgradeRequired]  = useState(false);
+  const [trialExhausted,   setTrialExhausted]   = useState(null);
+  // ✅ NEW: show "Thinking..." indicator when claude-opus-4-6 uses extended thinking
+  const [isThinking,       setIsThinking]       = useState(false);
+  // ✅ NEW: trial status map { modelId: { used, remaining, exhausted } }
+  const [modelTrials,      setModelTrials]      = useState({});
 
   const abortRef    = useRef(null);
   const activeIdRef = useRef(null);
@@ -37,7 +41,6 @@ export function useChat() {
   };
 
   const loadConvs = useCallback(async (_pid) => {
-    // ✅ Always load ALL conversations — project selection only sets chat context
     try {
       const r = await apiFetch("/api/conversations");
       if (r.ok) setConversations(await r.json());
@@ -51,19 +54,28 @@ export function useChat() {
     } catch (e) { console.error("loadProjects:", e); }
   }, []);
 
-  // ── Fetch current usage on page load so bar shows immediately ──
   const loadUsage = useCallback(async () => {
     try {
       const r = await apiFetch("/api/chat/usage");
-      if (r.ok) {
-        const d = await r.json();
-        setUsage(d);
-      }
+      if (r.ok) setUsage(await r.json());
     } catch (e) { console.error("loadUsage:", e); }
   }, []);
 
+  // ✅ NEW: load trial status for all paid models on startup
+  const loadModelTrials = useCallback(async () => {
+    try {
+      const r = await apiFetch("/api/models/trials");
+      if (r.ok) setModelTrials(await r.json());
+    } catch (e) { console.error("loadModelTrials:", e); }
+  }, []);
+
   useEffect(() => {
-    if (user) { loadProjects(); loadConvs(null); loadUsage(); }
+    if (user) {
+      loadProjects();
+      loadConvs(null);
+      loadUsage();
+      loadModelTrials();
+    }
   }, [user]);
 
   const selectConv = useCallback(async (id) => {
@@ -102,11 +114,36 @@ export function useChat() {
     } catch (e) { console.error("deleteConv:", e); }
   }, []);
 
+  // ✅ NEW: pin a conversation (shows at top of sidebar like Claude)
+  const pinConv = useCallback(async (id, pinned) => {
+    try {
+      await apiFetch(`/api/conversations/${id}`, {
+        method:  "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ pinned }),
+      });
+      setConversations(prev => prev.map(c => c.id === id ? { ...c, pinned } : c));
+    } catch (e) { console.error("pinConv:", e); }
+  }, []);
+
+  // ✅ NEW: archive a conversation (hide from main list without deleting)
+  const archiveConv = useCallback(async (id) => {
+    try {
+      await apiFetch(`/api/conversations/${id}`, {
+        method:  "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ archived: true }),
+      });
+      setConversations(prev => prev.filter(c => c.id !== id));
+      if (activeIdRef.current === id) { updateActiveId(null); setMessages([]); }
+    } catch (e) { console.error("archiveConv:", e); }
+  }, []);
+
   const sendMessage = useCallback(async (text, file, model) => {
     if (!text?.trim()) return;
 
-    // Reset upgrade prompt on each new message
     setUpgradeRequired(false);
+    setIsThinking(false);  // ✅ reset thinking state
 
     let cid = activeIdRef.current;
     if (!cid) {
@@ -136,7 +173,7 @@ export function useChat() {
       fd.append("conversationId", cid);
       fd.append("message", text);
       fd.append("model", model || "auto");
-      fd.append("lang", localStorage.getItem("rk-lang") || "en"); // ← user language preference
+      fd.append("lang", localStorage.getItem("rk-lang") || "en");
       if (file) fd.append("file", file);
 
       abortRef.current = new AbortController();
@@ -151,20 +188,18 @@ export function useChat() {
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
 
-        // ✅ File upload blocked — show upgrade prompt
         if (err.upgradeRequired) {
           setUpgradeRequired(true);
-          // Update usage so bar shows correct plan
           if (err.plan) setUsage(prev => prev ? { ...prev, plan: err.plan } : null);
           throw new Error(err.error || "File uploads require Starter plan or above.");
         }
 
-        // ✅ Trial exhausted
         if (err.trialExhausted) {
           setTrialExhausted({ modelId: err.modelId });
+          // ✅ Update local trial map so UI reflects immediately
+          setModelTrials(prev => ({ ...prev, [err.modelId]: { used: 3, remaining: 0, exhausted: true } }));
         }
 
-        // ✅ Rate limit hit — store full rate limit info for UI
         if (err.limitReached) {
           setRateLimit({
             window:    err.window,
@@ -177,15 +212,7 @@ export function useChat() {
             weekLimit: err.weekLimit,
             plan:      err.plan,
           });
-          setUsage({
-            hourCount: err.window === 'hourly' ? err.count : err.dayCount,
-            hourLimit: err.limit,
-            dayCount:  err.dayCount,
-            dayLimit:  err.dayLimit,
-            weekCount: err.weekCount,
-            weekLimit: err.weekLimit,
-            plan:      err.plan,
-          });
+          setUsage({ hourCount: err.window === 'hourly' ? err.count : err.dayCount, hourLimit: err.limit, dayCount: err.dayCount, dayLimit: err.dayLimit, weekCount: err.weekCount, weekLimit: err.weekLimit, plan: err.plan });
         }
 
         throw new Error(err.error || `Server error ${res.status}`);
@@ -211,7 +238,13 @@ export function useChat() {
           let data;
           try { data = JSON.parse(jsonStr); } catch (_) { continue; }
 
+          // ✅ NEW: handle thinking indicator events from claude-opus-4-6
+          if (data.type === "thinking_start") {
+            setIsThinking(true);
+          }
+
           if (data.type === "text" && data.text) {
+            setIsThinking(false);  // thinking done, text starting
             accumulated += data.text;
             const snapshot = accumulated;
             setMessages(prev =>
@@ -225,10 +258,21 @@ export function useChat() {
             );
           }
 
-          // ✅ Capture usage from done event
           if (data.type === "done" && data.usage) {
             setUsage(data.usage);
-            setRateLimit(null); // clear any previous rate limit block
+            setRateLimit(null);
+
+            // ✅ Update trial count from server response
+            if (data.trial) {
+              setModelTrials(prev => ({
+                ...prev,
+                [data.trial.modelId]: {
+                  used:      3 - data.trial.remaining,
+                  remaining: data.trial.remaining,
+                  exhausted: data.trial.remaining <= 0,
+                },
+              }));
+            }
           }
 
           if (data.type === "error") {
@@ -243,6 +287,7 @@ export function useChat() {
         );
       }
 
+      // Sync final messages from server to catch any DB-saved content
       try {
         const r2 = await apiFetch(`/api/conversations/${cid}`);
         if (r2.ok) {
@@ -275,12 +320,14 @@ export function useChat() {
       }
     } finally {
       setStreaming(false);
+      setIsThinking(false);
     }
   }, [activeProjectId, createNewConv]);
 
   const stopStream = useCallback(() => {
     abortRef.current?.abort();
     setStreaming(false);
+    setIsThinking(false);
   }, []);
 
   const createProject = useCallback(async (name, desc, sysprompt) => {
@@ -293,11 +340,10 @@ export function useChat() {
       if (r.ok) {
         const p = await r.json();
         setProjects(prev => [p, ...prev]);
-        // ✅ Immediately load conversations for new project (will be empty, that's fine)
         setActiveProjectId(p.id);
         updateActiveId(null);
         setMessages([]);
-        await loadConvs(null); // load all convs — recents always shows everything
+        await loadConvs(null);
         return p;
       }
     } catch (e) { console.error("createProject:", e); }
@@ -315,20 +361,28 @@ export function useChat() {
     setActiveProjectId(id);
     updateActiveId(null);
     setMessages([]);
-    loadConvs(id); // reload convs for this project (or null = all non-project convs)
+    loadConvs(id);
   }, [loadConvs]);
 
   return {
     conversations, activeId, messages, streaming,
     projects, activeProjectId,
-    usage,           // ✅ { hourCount, dayCount, weekCount, ...limits, plan }
-    rateLimit,       // ✅ set when blocked — { window, retryAt, ... }
-    upgradeRequired, // ✅ file upload blocked
-    trialExhausted,  // ✅ { modelId } when trial used up
+    usage,
+    rateLimit,
+    upgradeRequired,
+    trialExhausted,
+    isThinking,     // ✅ NEW: show "Thinking..." when opus is reasoning
+    modelTrials,    // ✅ NEW: trial status map for all paid models
+
     selectConv,
     setActiveProjectId: handleSetActiveProjectId,
     newConv:       () => createNewConv(activeProjectId),
-    deleteConv, sendMessage, stopStream,
-    createProject, deleteProject,
+    deleteConv,
+    pinConv,        // ✅ NEW
+    archiveConv,    // ✅ NEW
+    sendMessage,
+    stopStream,
+    createProject,
+    deleteProject,
   };
 }

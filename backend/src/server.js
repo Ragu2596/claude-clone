@@ -16,7 +16,7 @@ if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 const app = express();
 
-// ── CORS ──────────────────────────────────────────────────────
+// ── CORS ──────────────────────────────────────────────────────────────────────
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   'http://localhost:5173',
@@ -45,6 +45,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// ✅ IMPORTANT: Stripe webhook needs raw body — must come BEFORE express.json()
+app.use('/payments/webhook', express.raw({ type: 'application/json' }));
+
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
@@ -61,14 +64,14 @@ app.use(session({
 
 app.use('/uploads', express.static(uploadsDir, { maxAge: '7d' }));
 
-// ── Routes ────────────────────────────────────────────────────
+// ── Routes ────────────────────────────────────────────────────────────────────
 import authRoutes         from './routes/auth.js';
 import chatRoutes         from './routes/chat.js';
 import conversationRoutes from './routes/conversations.js';
 import projectRoutes      from './routes/projects.js';
 import paymentRoutes      from './routes/payment.js';
-import adminRoutes        from './routes/admin.js';       // 🆕 admin dashboard
-import modelsRoutes       from './routes/models.js';      // 🆕 auto model sync
+import adminRoutes        from './routes/admin.js';
+import modelsRoutes       from './routes/models.js';
 import supportRoutes      from './routes/support.js';
 
 app.use('/auth',              authRoutes);
@@ -76,35 +79,37 @@ app.use('/api/chat',          chatRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/projects',      projectRoutes);
 app.use('/payments',          paymentRoutes);
-app.use('/api/admin',         adminRoutes);               // 🆕
-app.use('/api/models',        modelsRoutes);              // 🆕
+app.use('/api/admin',         adminRoutes);
+app.use('/api/models',        modelsRoutes);
 app.use('/api/support',       supportRoutes);
 
-// ── Health ────────────────────────────────────────────────────
+// ── Health ────────────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => res.json({
   status:  'ok',
   uptime:  Math.round(process.uptime()) + 's',
   origins: allowedOrigins,
 }));
 
-// ── Error handler ─────────────────────────────────────────────
+// ── Error handler ─────────────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error('❌ Error:', err.message);
   if (err.message.startsWith('CORS')) return res.status(403).json({ error: err.message });
   res.status(500).json({ error: 'Internal server error' });
 });
 
-// ── Start ─────────────────────────────────────────────────────
+// ── Start ─────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`\n✅ Server → http://localhost:${PORT}`);
-  console.log(`   NODE_ENV  : ${process.env.NODE_ENV}`);
-  console.log(`   Frontend  : ${process.env.FRONTEND_URL}`);
-  console.log(`   Google    : ${process.env.GOOGLE_CLIENT_ID     ? '✅' : '❌'}`);
-  console.log(`   Database  : ${process.env.DATABASE_URL         ? '✅' : '❌'}`);
-  console.log(`   Groq      : ${process.env.GROQ_API_KEY         ? '✅' : '❌'}`);
-  console.log(`   Gemini    : ${process.env.GEMINI_API_KEY       ? '✅' : '❌'}`);
-  console.log(`   Razorpay  : ${process.env.RAZORPAY_KEY_ID      ? '✅' : '❌'}\n`);
+  console.log(`   NODE_ENV    : ${process.env.NODE_ENV}`);
+  console.log(`   Frontend    : ${process.env.FRONTEND_URL}`);
+  console.log(`   Google      : ${process.env.GOOGLE_CLIENT_ID      ? '✅' : '❌'}`);
+  console.log(`   Database    : ${process.env.DATABASE_URL           ? '✅' : '❌'}`);
+  console.log(`   Groq        : ${process.env.GROQ_API_KEY           ? '✅' : '❌'}`);
+  console.log(`   Anthropic   : ${process.env.ANTHROPIC_API_KEY      ? '✅' : '❌'}`);
+  console.log(`   OpenAI      : ${process.env.OPENAI_API_KEY         ? '✅' : '❌'}`);
+  console.log(`   Gemini      : ${process.env.GEMINI_API_KEY         ? '✅' : '❌'}`);
+  console.log(`   Razorpay    : ${process.env.RAZORPAY_KEY_ID        ? '✅' : '❌'}\n`);
 
   startKeepAlive();
 });
