@@ -1,7 +1,11 @@
+// backend/src/lib/prisma.js
+// Singleton Prisma client — import this everywhere instead of
+// creating new PrismaClient() in every file (causes connection pool exhaustion).
+
 import { PrismaClient } from '@prisma/client';
 
-// Single shared instance — prevents "prepared statement already exists" error
-// that occurs when multiple PrismaClient instances share the same connection pool
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+});
 
 export default prisma;

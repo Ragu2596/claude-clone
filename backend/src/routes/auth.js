@@ -1,192 +1,112 @@
-import express from 'express';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import prisma from '../lib/prisma.js';
-import dotenv from 'dotenv';
-dotenv.config();
+// backend/src/routes/auth.js
+import express  from 'express';
+import bcrypt   from 'bcryptjs';
+import jwt      from 'jsonwebtoken';
+import prisma   from '../lib/prisma.js';
+import { config } from '../config/index.js';
 
-const router     = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET          || 'dev-secret';
-const CLIENT_ID  = process.env.GOOGLE_CLIENT_ID;
-const CLIENT_SEC = process.env.GOOGLE_CLIENT_SECRET;
-const CALLBACK   = process.env.GOOGLE_CALLBACK_URL;
-const FRONTEND   = process.env.FRONTEND_URL         || 'http://localhost:5173';
+const router = express.Router();
 
 function genToken(userId) {
-  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '30d' });
+  return jwt.sign({ userId }, config.jwtSecret, { expiresIn: '30d' });
 }
 
-// ── Debug ─────────────────────────────────────────────────────
+// GET /auth/debug
 router.get('/debug', (req, res) => res.json({
-  googleClientId: CLIENT_ID  ? CLIENT_ID.slice(0, 20) + '...' : '❌ MISSING',
-  googleSecret:   CLIENT_SEC ? '✅ set' : '❌ MISSING',
-  callbackUrl:    CALLBACK   || '❌ MISSING',
-  frontendUrl:    FRONTEND,
-  nodeEnv:        process.env.NODE_ENV,
-  nodeVersion:    process.version,
+  googleClientId: config.googleClientId ? config.googleClientId.slice(0, 20) + '...' : '❌ MISSING',
+  googleSecret:   config.googleClientSec ? '✅ set' : '❌ MISSING',
+  callbackUrl:    config.googleCallback  || '❌ MISSING',
+  frontendUrl:    config.frontendUrl,
+  nodeEnv:        config.nodeEnv,
   uptime:         Math.round(process.uptime()) + 's',
 }));
 
-// ── Register ──────────────────────────────────────────────────
+// POST /auth/register
 router.post('/register', async (req, res) => {
   const { name, email, password } = req.body;
-  if (!name || !email || !password)
-    return res.status(400).json({ error: 'All fields required' });
-  if (password.length < 6)
-    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  if (!name || !email || !password) return res.status(400).json({ error: 'All fields required' });
+  if (password.length < 6)          return res.status(400).json({ error: 'Password must be at least 6 characters' });
   try {
     if (await prisma.user.findUnique({ where: { email } }))
       return res.status(400).json({ error: 'Email already in use' });
     const hash = await bcrypt.hash(password, 12);
     const user = await prisma.user.create({ data: { name, email, password: hash } });
-    console.log('✅ Register:', user.email);
-    res.json({
-      token: genToken(user.id),
-      user:  { id: user.id, name: user.name, email: user.email, avatar: user.avatar },
-    });
+    res.json({ token: genToken(user.id), user: { id: user.id, name: user.name, email: user.email, avatar: user.avatar } });
   } catch (e) {
-    console.error('❌ Register error:', e.message);
+    console.error('Register error:', e.message);
     res.status(500).json({ error: 'Registration failed' });
   }
 });
 
-// ── Login ─────────────────────────────────────────────────────
+// POST /auth/login
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password)
-    return res.status(400).json({ error: 'Email and password required' });
+  if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
   try {
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user || !user.password)
+    if (!user || !user.password || !await bcrypt.compare(password, user.password))
       return res.status(401).json({ error: 'Invalid email or password' });
-    if (!await bcrypt.compare(password, user.password))
-      return res.status(401).json({ error: 'Invalid email or password' });
-    console.log('✅ Login:', user.email);
-    res.json({
-      token: genToken(user.id),
-      user:  { id: user.id, name: user.name, email: user.email, avatar: user.avatar },
-    });
+    res.json({ token: genToken(user.id), user: { id: user.id, name: user.name, email: user.email, avatar: user.avatar } });
   } catch (e) {
-    console.error('❌ Login error:', e.message);
     res.status(500).json({ error: 'Login failed' });
   }
 });
 
-// ── Me ────────────────────────────────────────────────────────
+// GET /auth/me
 router.get('/me', async (req, res) => {
   const header = req.headers.authorization;
-  if (!header?.startsWith('Bearer '))
-    return res.status(401).json({ error: 'Unauthorized' });
+  if (!header?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
   try {
-    const { userId } = jwt.verify(header.split(' ')[1], JWT_SECRET);
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const { userId } = jwt.verify(header.split(' ')[1], config.jwtSecret);
+    const user       = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return res.status(401).json({ error: 'User not found' });
     res.json({ id: user.id, name: user.name, email: user.email, avatar: user.avatar, plan: user.plan });
-  } catch (e) {
+  } catch {
     res.status(401).json({ error: 'Invalid token' });
   }
 });
 
-// ─────────────────────────────────────────────────────────────
-// GOOGLE OAUTH — Manual, no passport, no session, no state
-// Uses built-in Node fetch (Node 18+)
-// ─────────────────────────────────────────────────────────────
-
-// Fallback redirect (used if VITE_GOOGLE_CLIENT_ID not set on frontend)
+// GET /auth/google
 router.get('/google', (req, res) => {
-  if (!CLIENT_ID || !CLIENT_SEC) {
-    console.error('❌ Google not configured');
-    return res.redirect(`${FRONTEND}?error=google_not_configured`);
-  }
-  const params = new URLSearchParams({
-    client_id:     CLIENT_ID,
-    redirect_uri:  CALLBACK,
-    response_type: 'code',
-    scope:         'openid email profile',
-    prompt:        'select_account',
-    access_type:   'online',
-  });
-  console.log('🚀 /auth/google → Google | uptime:', Math.round(process.uptime()) + 's');
+  if (!config.googleClientId || !config.googleClientSec)
+    return res.redirect(`${config.frontendUrl}?error=google_not_configured`);
+  const params = new URLSearchParams({ client_id: config.googleClientId, redirect_uri: config.googleCallback, response_type: 'code', scope: 'openid email profile', prompt: 'select_account', access_type: 'online' });
   res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
 });
 
-// ✅ Callback — this runs AFTER backend is already warm
+// GET /auth/google/callback
 router.get('/google/callback', async (req, res) => {
   const { code, error } = req.query;
-  console.log('📥 /google/callback | code:', !!code, '| error:', error || 'none', '| uptime:', Math.round(process.uptime()) + 's');
-
-  if (error || !code) {
-    console.error('❌ No code from Google:', error);
-    return res.redirect(`${FRONTEND}?error=google_failed&msg=${encodeURIComponent(error || 'no_code')}`);
-  }
+  if (error || !code)
+    return res.redirect(`${config.frontendUrl}?error=google_failed&msg=${encodeURIComponent(error || 'no_code')}`);
 
   try {
-    // Exchange code for token
-    const tokenBody = new URLSearchParams({
-      code,
-      client_id:     CLIENT_ID,
-      client_secret: CLIENT_SEC,
-      redirect_uri:  CALLBACK,
-      grant_type:    'authorization_code',
-    });
-
-    console.log('🔄 Exchanging code...');
     const tokenRes  = await fetch('https://oauth2.googleapis.com/token', {
-      method:  'POST',
+      method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body:    tokenBody.toString(),
+      body: new URLSearchParams({ code, client_id: config.googleClientId, client_secret: config.googleClientSec, redirect_uri: config.googleCallback, grant_type: 'authorization_code' }).toString(),
     });
     const tokenData = await tokenRes.json();
+    if (!tokenRes.ok || !tokenData.access_token)
+      return res.redirect(`${config.frontendUrl}?error=google_failed&msg=${encodeURIComponent(tokenData.error || 'token_failed')}`);
 
-    if (!tokenRes.ok || !tokenData.access_token) {
-      const msg = tokenData.error_description || tokenData.error || 'token_failed';
-      console.error('❌ Token exchange failed:', msg, tokenData);
-      return res.redirect(`${FRONTEND}?error=google_failed&msg=${encodeURIComponent(msg)}`);
-    }
+    const profileRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', { headers: { Authorization: `Bearer ${tokenData.access_token}` } });
+    const profile    = await profileRes.json();
+    if (!profile.email) throw new Error('No email from Google');
 
-    console.log('✅ Token received, fetching profile...');
-
-    // Get user info
-    const profileRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-      headers: { Authorization: `Bearer ${tokenData.access_token}` },
-    });
-    const profile = await profileRes.json();
-
-    if (!profile.email) throw new Error('No email from Google profile');
-
-    console.log('👤 Profile:', profile.email);
-
-    // Upsert user
     let user = await prisma.user.findUnique({ where: { googleId: profile.id } });
-
     if (!user) {
       user = await prisma.user.findUnique({ where: { email: profile.email } });
       if (user) {
-        user = await prisma.user.update({
-          where: { id: user.id },
-          data:  { googleId: profile.id, avatar: profile.picture || user.avatar },
-        });
-        console.log('🔗 Linked Google:', profile.email);
+        user = await prisma.user.update({ where: { id: user.id }, data: { googleId: profile.id, avatar: profile.picture || user.avatar } });
       } else {
-        user = await prisma.user.create({
-          data: {
-            email:    profile.email,
-            name:     profile.name || 'User',
-            avatar:   profile.picture || null,
-            googleId: profile.id,
-          },
-        });
-        console.log('🆕 Created user:', profile.email);
+        user = await prisma.user.create({ data: { email: profile.email, name: profile.name || 'User', avatar: profile.picture || null, googleId: profile.id } });
       }
     }
 
-    const token = genToken(user.id);
-    console.log('✅ Success:', profile.email, '→ redirecting to', FRONTEND);
-    return res.redirect(`${FRONTEND}?token=${token}`);
-
+    res.redirect(`${config.frontendUrl}?token=${genToken(user.id)}`);
   } catch (e) {
-    console.error('❌ Callback error:', e.message);
-    return res.redirect(`${FRONTEND}?error=google_failed&msg=${encodeURIComponent(e.message)}`);
+    res.redirect(`${config.frontendUrl}?error=google_failed&msg=${encodeURIComponent(e.message)}`);
   }
 });
 

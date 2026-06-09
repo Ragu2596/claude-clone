@@ -1,54 +1,34 @@
-import express from 'express';
-import { PrismaClient } from '@prisma/client';
+// backend/src/routes/conversations.js
+import express   from 'express';
+import prisma    from '../lib/prisma.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
-// GET /api/conversations  (optionally ?projectId=xxx)
+// GET /api/conversations
 router.get('/', authenticate, async (req, res) => {
   try {
-    const { projectId } = req.query;
-
-    // Build where clause - fix null filter for Prisma compatibility
-    let where;
-    if (projectId) {
-      where = { userId: req.user.id, projectId: projectId };
-    } else {
-      // Get conversations NOT in any project
-      where = {
-        userId: req.user.id,
-        OR: [
-          { projectId: null },
-          { projectId: { equals: null } }
-        ]
-      };
-    }
-
     const convs = await prisma.conversation.findMany({
-      where: { userId: req.user.id, projectId: projectId || null },
-      orderBy: { updatedAt: 'desc' },
-      select: { id: true, title: true, createdAt: true, updatedAt: true, projectId: true }
+      where:   { userId: req.user.id, projectId: req.query.projectId || null },
+      orderBy: [{ pinned: 'desc' }, { updatedAt: 'desc' }],
+      select:  { id: true, title: true, pinned: true, createdAt: true, updatedAt: true, projectId: true },
     });
-
     res.json(convs);
   } catch (e) {
-    console.error('GET /conversations error:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
 
-// GET /api/conversations/:id  (with messages)
+// GET /api/conversations/:id
 router.get('/:id', authenticate, async (req, res) => {
   try {
     const conv = await prisma.conversation.findFirst({
-      where: { id: req.params.id, userId: req.user.id },
-      include: { messages: { orderBy: { createdAt: 'asc' } } }
+      where:   { id: req.params.id, userId: req.user.id },
+      include: { messages: { orderBy: { createdAt: 'asc' } } },
     });
     if (!conv) return res.status(404).json({ error: 'Not found' });
     res.json(conv);
   } catch (e) {
-    console.error('GET /conversations/:id error:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
@@ -56,73 +36,48 @@ router.get('/:id', authenticate, async (req, res) => {
 // POST /api/conversations
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { title, projectId } = req.body;
     const conv = await prisma.conversation.create({
-      data: {
-        title: title || 'New Chat',
-        userId: req.user.id,
-        projectId: projectId || null
-      }
+      data: { title: req.body.title || 'New Chat', userId: req.user.id, projectId: req.body.projectId || null },
     });
     res.json(conv);
   } catch (e) {
-    console.error('POST /conversations error:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
 
-// PATCH /api/conversations/:id
+// PATCH /api/conversations/:id  (rename, pin, archive)
 router.patch('/:id', authenticate, async (req, res) => {
   try {
     const conv = await prisma.conversation.findFirst({ where: { id: req.params.id, userId: req.user.id } });
     if (!conv) return res.status(404).json({ error: 'Not found' });
+
+    const { title, pinned, archived } = req.body;
     const updated = await prisma.conversation.update({
       where: { id: req.params.id },
-      data: { title: req.body.title || conv.title }
+      data:  {
+        ...(title    !== undefined && { title }),
+        ...(pinned   !== undefined && { pinned }),
+        ...(archived !== undefined && { archived }),
+      },
     });
     res.json(updated);
   } catch (e) {
-    console.error('PATCH /conversations/:id error:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
 
-// DELETE /api/conversations/all — delete ALL conversations for THIS user only
-// ⚠️ Must be defined BEFORE /:id route to avoid "all" being treated as an id
-// ✅ Only deletes Conversation + Message rows for this user
-// ✅ KnowledgeCache is NEVER touched — shared across all users for cache hits
+// DELETE /api/conversations/all  (must be before /:id)
 router.delete('/all', authenticate, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId  = req.user.id;
+    const convIds = await prisma.conversation.findMany({ where: { userId }, select: { id: true } });
+    const ids     = convIds.map(c => c.id);
+    if (ids.length === 0) return res.json({ success: true, deleted: 0 });
 
-    // Step 1: Get all conversation IDs for this user
-    const convIds = await prisma.conversation.findMany({
-      where:  { userId },
-      select: { id: true },
-    });
-    const ids = convIds.map(c => c.id);
-
-    if (ids.length === 0) {
-      return res.json({ success: true, deleted: 0 });
-    }
-
-    // Step 2: Delete messages in those conversations first (cascade safety)
-    await prisma.message.deleteMany({
-      where: { conversationId: { in: ids } },
-    });
-
-    // Step 3: Delete the conversations themselves
-    const { count } = await prisma.conversation.deleteMany({
-      where: { userId },
-    });
-
-    // ✅ KnowledgeCache is intentionally NOT deleted —
-    //    it is shared across all users and saves API costs globally
-
-    console.log(`🗑️  User ${userId}: deleted ${count} conversations + all their messages`);
+    await prisma.message.deleteMany({ where: { conversationId: { in: ids } } });
+    const { count } = await prisma.conversation.deleteMany({ where: { userId } });
     res.json({ success: true, deleted: count });
   } catch (e) {
-    console.error('DELETE /conversations/all error:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
@@ -135,7 +90,6 @@ router.delete('/:id', authenticate, async (req, res) => {
     await prisma.conversation.delete({ where: { id: req.params.id } });
     res.json({ success: true });
   } catch (e) {
-    console.error('DELETE /conversations/:id error:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
