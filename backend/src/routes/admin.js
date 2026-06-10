@@ -228,8 +228,6 @@ router.delete('/admins/:id', authenticate, isAdmin, otpVerified, isSuperAdmin, a
 });
 
 
-    res.json({ cleared: d.count, message: 'Models cleared. Will resync on next /api/models call.' });
-  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 export default router;
