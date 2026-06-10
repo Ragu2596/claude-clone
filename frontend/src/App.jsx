@@ -913,7 +913,7 @@ function InputBar({ onSend, streaming, onStop, userPlan }) {
             </button>
           </div>
           <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-            {userPlan!=="free" && <ModelSelector value={selectedModel} onChange={(m) => { setModel(m); newConv(); }}/>}
+            {userPlan!=="free" && <ModelSelector value={selectedModel} onChange={(m) => { setModel(m); }}/>}
             {streaming
               ? <button onClick={onStop} style={{ width:32, height:32, borderRadius:8, background:"var(--text)", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}
                   onMouseEnter={e=>e.currentTarget.style.background="#333"} onMouseLeave={e=>e.currentTarget.style.background="var(--text)"}><StopIcon size={12}/></button>
