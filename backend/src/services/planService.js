@@ -131,12 +131,12 @@ if (hasFile && userPlan === 'free') {
   // Plan access
   if (!planAllowsModel(chosenModel, userPlan)) {
     console.log(`🔒 ${chosenModel.id} requires ${chosenModel.requiredPlan}, user has ${userPlan} — fallback`);
-    chosenModel = STATIC_MODELS['claude-haiku-4-5-20251001'];
+    chosenModel = STATIC_MODELS['claude-sonnet-4-6'];
   }
 
   // Trial check for free users
   let trialInfo = null;
-  if (userPlan === 'free' && chosenModel.requiredPlan && chosenModel.requiredPlan !== 'starter') {
+  if (userPlan === 'free' && chosenModel.requiredPlan && chosenModel.requiredPlan !== 'starter' && chosenModel.requiredPlan !== 'pro') {
     const trial = await getTrialStatus(userId, chosenModel.id);
     if (trial.exhausted) {
       return { error: { status: 403, body: { error: 'Trial exhausted. Upgrade to continue!', trialExhausted: true, modelId: chosenModel.id, plan: userPlan } } };
