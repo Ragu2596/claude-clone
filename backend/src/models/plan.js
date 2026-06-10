@@ -40,11 +40,22 @@ export const MODEL_DAILY_LIMITS = {
 // ── Static fallback model registry ───────────────────────────────────────────
 // Used when ModelConfig DB is empty. DB is the source of truth at runtime.
 export const STATIC_MODELS = {
-  'claude-haiku-4-5-20251001':  { provider: 'anthropic', id: 'claude-haiku-4-5-20251001',  free: true,  requiredPlan: null  },
-  'claude-haiku-4-6':           { provider: 'anthropic', id: 'claude-haiku-4-6',            free: true,  requiredPlan: null  },
-  'claude-sonnet-4-5-20250929': { provider: 'anthropic', id: 'claude-sonnet-4-5-20250929',  free: true,  requiredPlan: null  },
-  'claude-sonnet-4-6':          { provider: 'anthropic', id: 'claude-sonnet-4-6',            free: true,  requiredPlan: null  },
-  'claude-opus-4-6':            { provider: 'anthropic', id: 'claude-opus-4-6',              free: false, requiredPlan: 'max' },
+  // Haiku — Fast tier
+  'claude-haiku-4-5-20251001':  { provider:'anthropic', id:'claude-haiku-4-5-20251001',  free:true,  requiredPlan:null      },
+  'claude-haiku-4-6':           { provider:'anthropic', id:'claude-haiku-4-6',            free:true,  requiredPlan:null      },
+  // Sonnet — Pro tier
+  'claude-sonnet-4-20250514':   { provider:'anthropic', id:'claude-sonnet-4-20250514',    free:true,  requiredPlan:null      },
+  'claude-sonnet-4-5-20250929': { provider:'anthropic', id:'claude-sonnet-4-5-20250929',  free:true,  requiredPlan:null      },
+  'claude-sonnet-4-6':          { provider:'anthropic', id:'claude-sonnet-4-6',            free:true,  requiredPlan:null      },
+  // Opus — Max tier
+  'claude-opus-4-20250514':     { provider:'anthropic', id:'claude-opus-4-20250514',      free:false, requiredPlan:'max'     },
+  'claude-opus-4-1-20250805':   { provider:'anthropic', id:'claude-opus-4-1-20250805',    free:false, requiredPlan:'max'     },
+  'claude-opus-4-5-20251101':   { provider:'anthropic', id:'claude-opus-4-5-20251101',    free:false, requiredPlan:'max'     },
+  'claude-opus-4-6':            { provider:'anthropic', id:'claude-opus-4-6',              free:false, requiredPlan:'max'     },
+  'claude-opus-4-7':            { provider:'anthropic', id:'claude-opus-4-7',              free:false, requiredPlan:'max'     },
+  'claude-opus-4-8':            { provider:'anthropic', id:'claude-opus-4-8',              free:false, requiredPlan:'max'     },
+  // Special
+  'claude-fable-5':             { provider:'anthropic', id:'claude-fable-5',               free:false, requiredPlan:'pro'     },
 };
 
 export const FREE_FALLBACK_MODEL = STATIC_MODELS['claude-sonnet-4-5-20250929'];
