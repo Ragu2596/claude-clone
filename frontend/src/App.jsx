@@ -833,7 +833,6 @@ function Message({ msg, isLast, streaming, onArtifact, activeArtifactCode, onRet
 }
 
 // ── Model Selector ────────────────────────────────────────────
-const MODELS_STATIC = [{id:"auto",label:"Auto",sub:"Best model",badge:"AUTO",color:"#6b7280",group:"auto"}];
 
 
 
