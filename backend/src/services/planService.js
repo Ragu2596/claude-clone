@@ -121,6 +121,7 @@ export async function incrementTrial(userId, modelId) {
 export async function resolveModel(requestedModel, userId, userPlan, hasFile) {
   // File upload check
   // Free users always get Claude Haiku
+// Free users always get Claude Haiku
 if (hasFile && userPlan === 'free') {
     return { error: { status: 403, body: { error: 'File uploads require Starter plan.', upgradeRequired: true, plan: userPlan } } };
   }
