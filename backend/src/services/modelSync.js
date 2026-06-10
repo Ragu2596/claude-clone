@@ -112,7 +112,18 @@ export async function syncModels() {
 
   for (const { modelId } of allModels) {
     const existing = await prisma.modelConfig.findUnique({ where: { modelId } });
-    if (existing) continue; // already in DB — skip
+    if (existing) {
+      // Update display name if it looks wrong (timestamp-based)
+      const s = statics.find(x => x.modelId === modelId);
+      if (s && existing.displayName !== s.name) {
+        await prisma.modelConfig.update({
+          where: { modelId },
+          data: { displayName: s.name, badge: s.badge, requiredPlan: s.plan, color: '#c96442' }
+        });
+        console.log(`[modelSync] UPDATED: ${modelId} → "${s.name}"`);
+      }
+      continue;
+    }
 
     // New model found — determine its properties
     const staticDef = staticModels.find(s => s.modelId === modelId);
