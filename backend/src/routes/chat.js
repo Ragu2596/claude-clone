@@ -162,6 +162,7 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
 
     // ── 9. Stream AI response ─────────────────────────────────────────────────
     startSSE(res);
+    console.log(`[ACTUAL MODEL USED] ${chosenModel.provider}:${chosenModel.id} plan=${userPlan}`);
     const fullResponse = await callProvider(chosenModel, systemPrompt, history, res, enableThinking);
 
     console.log(`✅ Done — ${chosenModel.provider} len=${fullResponse.length}`);
