@@ -177,7 +177,7 @@ function AuthPage() {
   };
 
   if (justRegistered) return (
-    <div style={{ minHeight:"100vh", background:"var(--cream)", display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
+    <div style={{ minHeight:"100vh", background:"#f9f9f7", display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
       <div style={{ width:"100%", maxWidth:400, textAlign:"center" }}>
         <div style={{ fontSize:56, marginBottom:12 }}>🎉</div>
         <RkLogo size={48} />
@@ -201,7 +201,7 @@ function AuthPage() {
   );
 
   return (
-    <div style={{ minHeight:"100vh", background:"var(--cream)", display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
+    <div style={{ minHeight:"100vh", background:"#f9f9f7", display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
       <div style={{ width:"100%", maxWidth:380 }}>
         <div style={{ textAlign:"center", marginBottom:32 }}>
           <RkLogo size={56} />
@@ -1075,7 +1075,7 @@ export default function App() {
   }, [messages]);
 
   if (authLoading) return (
-    <div style={{ height:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"var(--cream)" }}>
+    <div style={{ height:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"#f9f9f7" }}>
       <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:16 }}>
         <RkLogo size={48}/>
         <div style={{ width:32, height:32, border:"3px solid var(--border)", borderTopColor:"var(--orange)", borderRadius:"50%", animation:"spin 0.8s linear infinite" }}/>
