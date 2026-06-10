@@ -185,7 +185,7 @@ function AuthPage() {
         <h1 style={{ fontSize:26, fontWeight:800, marginTop:16, color:"var(--text)", letterSpacing:"-0.02em" }}>Welcome to rk.ai!</h1>
         <p style={{ fontSize:15, color:"var(--text2)", marginTop:8, marginBottom:28 }}>Hey <strong>{registeredName}</strong>, your account is ready 🚀</p>
         <div style={{ background:"#fff", borderRadius:16, padding:"20px 24px", border:"1px solid var(--border)", marginBottom:24, textAlign:"left" }}>
-          {[{icon:"✅",text:"Free account activated"},{icon:"🤖",text:"Groq & Gemini models ready to use"},{icon:"💬",text:"5 free messages per day to start"},{icon:"⚡",text:"Upgrade anytime for more models"}].map((item,i) => (
+          {[{icon:"✅",text:"Free account activated"},{icon:"🤖",text:"Claude AI models ready to use"},{icon:"💬",text:"5 free messages per day to start"},{icon:"⚡",text:"Upgrade anytime for more models"}].map((item,i) => (
             <div key={i} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 0", borderBottom:i<3?"1px solid var(--border)":"none" }}>
               <span style={{ fontSize:18 }}>{item.icon}</span>
               <span style={{ fontSize:13, color:"var(--text)", fontWeight:500 }}>{item.text}</span>
@@ -320,7 +320,7 @@ function HelpModal({ onClose }) {
   useEffect(() => { chatEndRef.current?.scrollIntoView({behavior:"smooth"}); }, [chatLog]);
   const FAQS = [
     {q:"How do daily/hourly limits work?",a:"Limits are rolling windows — not midnight resets. They refill as old messages age out."},
-    {q:"Which models are free?",a:"Groq (Llama 3.3), Gemini Flash/Pro, Mistral, Together AI are completely free. Claude/GPT need Starter+."},
+    {q:"Which models are available?",a:"All Claude models by Anthropic — Haiku (fast), Sonnet (balanced), and Opus (powerful). Haiku is free for all users."},
     {q:"How do I upgrade my plan?",a:"Click 'Upgrade plan' in the sidebar menu. We accept UPI, cards, and netbanking via Razorpay."},
     {q:"Can I upload files?",a:"Yes! Starter plan and above can upload images and PDFs. Free plan is text-only."},
     {q:"What is the knowledge cache?",a:"Common questions are cached — served instantly from our DB at zero AI cost. Keeps prices low for everyone!"},
