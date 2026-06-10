@@ -45,3 +45,4 @@ export function startKeepAlive() {
 export function stopKeepAlive() {
   if (timer) { clearInterval(timer); timer = null; }
 }
+export default App;
