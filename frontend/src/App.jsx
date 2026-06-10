@@ -69,7 +69,7 @@ const GoogleLogo = () => (
 // ── CSS — Claude exact design ─────────────────────────────────
 const CSS = `
   :root {
-    --cream:#f9f7f4; --sidebar:#1a1915;
+    --cream:#f9f9f7; --sidebar:#1a1915;
     --sidebar-hover:rgba(255,255,255,0.07);
     --sidebar-active:rgba(255,255,255,0.12);
     --sidebar-border:rgba(255,255,255,0.08);
@@ -291,7 +291,7 @@ function LanguageModal({ onClose }) {
         <div style={{ maxHeight:300, overflowY:"auto", borderRadius:10, border:"1px solid var(--border)", background:"#fff" }}>
           {filtered.map((l,i) => (
             <div key={l.code} onClick={() => setSelected(l.code)}
-              style={{ display:"flex", alignItems:"center", gap:12, padding:"11px 14px", cursor:"pointer", background:selected===l.code?"#faf0ea":"#fff", borderBottom:i<filtered.length-1?"1px solid #f5f0e8":"none" }}
+              style={{ display:"flex", alignItems:"center", gap:12, padding:"11px 14px", cursor:"pointer", background:selected===l.code?"#faf0ea":"#fff", borderBottom:i<filtered.length-1?"1px solid #f9f9f7":"none" }}
               onMouseEnter={e => { if (selected!==l.code) e.currentTarget.style.background="#faf8f5"; }}
               onMouseLeave={e => { e.currentTarget.style.background=selected===l.code?"#faf0ea":"#fff"; }}>
               <span style={{ fontSize:20 }}>{l.flag}</span>

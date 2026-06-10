@@ -104,7 +104,7 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
     const budgetExhausted = userPlan !== 'free' && !budget.hasbudget;
     if (budgetExhausted && chosenModel.requiredPlan) {
       console.log(`💸 Budget fallback: ${chosenModel.id} → groq`);
-      chosenModel = STATIC_MODELS['llama-3.3-70b-versatile'];
+      chosenModel = STATIC_MODELS['claude-haiku-4-5-20251001'] || STATIC_MODELS['claude-haiku-4-6'] || chosenModel;
     }
 
     // ── 5. Extended thinking for opus ─────────────────────────────────────────

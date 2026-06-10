@@ -1,6 +1,6 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  --cream:#f9f7f4; --sidebar:#1a1915;
+  --cream:#f9f9f7; --sidebar:#1a1915;
   --sidebar-hover:rgba(255,255,255,0.07); --sidebar-active:rgba(255,255,255,0.12);
   --sidebar-border:rgba(255,255,255,0.08);
   --sidebar-text:#e8e4de; --sidebar-text2:#a09d97; --sidebar-text3:#6b6860;
