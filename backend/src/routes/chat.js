@@ -43,13 +43,22 @@ function maybeSyncModels() {
 maybeSyncModels();
 
 // ── Base system prompt ────────────────────────────────────────────────────────
-const BASE_SYSTEM_PROMPT = `You are rk.ai, a powerful AI assistant. Be helpful, accurate, and direct.
+function getBaseSystemPrompt() {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  const timeStr = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', timeZoneName:'short' });
+  return `You are rk.ai, a powerful AI assistant built on Claude by Anthropic. Be helpful, accurate, and direct.
+
+Current date and time: ${dateStr}, ${timeStr}
 
 IMPORTANT — always follow these rules:
-1. Wrap ALL code and file content in fenced code blocks with the correct language tag.
-2. When asked to CREATE or GENERATE any file, give COMPLETE ready-to-use content — never truncate.
-3. Always consider the full conversation history when answering follow-up questions.
-4. Be concise — no unnecessary disclaimers.`;
+1. You KNOW today's date — always answer date/time questions accurately using the date above.
+2. Wrap ALL code and file content in fenced code blocks with the correct language tag.
+3. When asked to CREATE or GENERATE any file, give COMPLETE ready-to-use content — never truncate.
+4. Always consider the full conversation history when answering follow-up questions.
+5. Be concise — no unnecessary disclaimers.`;
+}
+const BASE_SYSTEM_PROMPT = getBaseSystemPrompt();
 
 function autoTitle(text) {
   return text.replace(/[^a-zA-Z0-9 ]/g, ' ').trim().split(' ').filter(Boolean).slice(0, 6).join(' ') || 'New Chat';

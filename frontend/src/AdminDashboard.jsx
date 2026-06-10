@@ -159,7 +159,7 @@ function NotAdminScreen() {
         <p style={{ fontSize: 64 }}>🚫</p>
         <p style={{ fontSize: 22, fontWeight: 800, marginTop: 16 }}>Access Denied</p>
         <p style={{ color: "#64748b", marginTop: 8, maxWidth: 320 }}>Your account is not authorized to access the admin panel. Contact the super admin.</p>
-        <button onClick={() => { window.location.hash = ""; window.location.reload(); }}
+        <button onClick={() => onBack?.()}
           style={{ marginTop: 24, padding: "10px 24px", background: "#c96442", border: "none", borderRadius: 8, color: "#fff", fontWeight: 600, cursor: "pointer" }}>
           Go back to rk.ai
         </button>
@@ -444,7 +444,7 @@ export default function AdminDashboard() {
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={loadData} style={{ padding: "6px 14px", background: "#334155", border: "none", borderRadius: 7, color: "#94a3b8", fontSize: 12, cursor: "pointer" }}>🔄 Refresh</button>
           <button onClick={lock}     style={{ padding: "6px 14px", background: "#334155", border: "none", borderRadius: 7, color: "#94a3b8", fontSize: 12, cursor: "pointer" }}>🔐 Lock</button>
-          <button onClick={() => { window.location.hash = ""; window.location.reload(); }}
+          <button onClick={() => onBack?.()}
             style={{ padding: "6px 14px", background: "#c96442", border: "none", borderRadius: 7, color: "#fff", fontSize: 12, cursor: "pointer" }}>← Back to app</button>
         </div>
       </div>
