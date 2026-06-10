@@ -256,14 +256,14 @@ export default function PricingPage({ onClose }) {
   return (
     <div
       style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, overflowY: "auto" }}
-      onClick={e => { if (e.target === e.currentTarget && !isLoading) onClose?.(); }}>
+      onClick={e => { if (e.target === e.currentTarget) onClose?.(); }}>
 
       <div style={{ background: "#faf8f5", borderRadius: 22, maxWidth: 940, width: "100%", maxHeight: "95vh", overflowY: "auto", padding: "36px 28px", position: "relative", boxShadow: "0 24px 80px rgba(0,0,0,0.2)" }}>
 
         {/* Close */}
         <button
-          onClick={() => !isLoading && onClose?.()}
-          disabled={isLoading}
+          onClick={() => onClose?.()}
+          
           style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", cursor: isLoading ? "default" : "pointer", fontSize: 22, color: "#999", lineHeight: 1, padding: 6 }}>
           ✕
         </button>
