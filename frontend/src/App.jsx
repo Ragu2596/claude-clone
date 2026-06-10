@@ -1087,7 +1087,7 @@ export default function App() {
 
   // Admin check
   const isAdmin = user?.email === "ragunath2596@gmail.com";
-  if (showAdmin && isAdmin) return <AdminDashboard onBack={()=>setShowAdmin(false)}/>;
+  if (showAdmin && isAdmin) return <AdminDashboard onBack={() => { setShowAdmin(false); }}/>;
   if (showPricing) return <PricingPage onClose={()=>setShowPricing(false)} user={user}/>;
 
   const handleSend = (text, file, model) => {
