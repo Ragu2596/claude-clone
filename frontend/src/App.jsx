@@ -1103,7 +1103,7 @@ export default function App() {
   const sidebarProps = { conversations, projects, activeId, activeProjectId, selectConv, newConv, deleteConv, setActiveProjectId, createProject, deleteProject, onUpgrade:()=>setShowPricing(true), isMobile };
 
   return (
-    <div style={{ height:"100vh", display:"flex", overflow:"hidden", background:"var(--cream)" }}>
+    <div style={{ height:"100vh", display:"flex", overflow:"hidden", background:"#f9f9f7" }}>
       {/* Mobile overlay */}
       {isMobile && sidebarOpen && (
         <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:99 }} onClick={()=>setSidebarOpen(false)}/>
@@ -1148,7 +1148,7 @@ export default function App() {
           </div>
 
           {/* Messages */}
-          <div style={{ flex:1, overflowY:"auto", padding:"0 20px" }}>
+          <div style={{ flex:1, overflowY:"auto", padding:"0 20px", background:"#f9f9f7" }}>
             {messages.length===0 ? (
               <div style={{ height:"100%", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"0 24px 80px", animation:"fadeUp .3s ease" }}>
                 <RkLogo size={52}/>
