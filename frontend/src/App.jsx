@@ -1100,7 +1100,7 @@ export default function App() {
   // Admin check
   const isAdmin = user?.email === import.meta.env.VITE_ADMIN_EMAIL || user?.plan === "max";
   if (showAdmin && isAdmin) return <AdminDashboard onBack={()=>setShowAdmin(false)}/>;
-  if (showPricing) return <PricingPage onBack={()=>setShowPricing(false)} user={user}/>;
+  if (showPricing) return <PricingPage onClose={()=>setShowPricing(false)} user={user}/>;
 
   const handleSend = (text, file, model) => {
     sendMessage(text, file, model);
