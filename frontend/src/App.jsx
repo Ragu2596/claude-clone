@@ -500,7 +500,7 @@ function Sidebar({ conversations, projects, activeId, activeProjectId, selectCon
   ];
 
   return (
-    <div style={{ width:260, height:"100%", background:"var(--sidebar)", display:"flex", flexDirection:"column", borderRight:"1px solid var(--sidebar-border)" }}>
+    <div style={{ width:260, height:"100%", background:"#1a1915", display:"flex", flexDirection:"column", borderRight:"1px solid rgba(255,255,255,0.08)" }}>
       {/* Header */}
       <div style={{ padding:"12px 12px 8px", flexShrink:0 }}>
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"2px 2px" }}>
