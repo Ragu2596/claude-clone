@@ -92,19 +92,7 @@ const CSS = `
   .msg-wrap:hover .msg-actions{opacity:1;}
   .user-actions{opacity:0;transition:opacity .15s;}
   .user-wrap:hover .user-actions{opacity:1;}
-  .conv-item{display:flex;align-items:center;padding:5px 10px;border-radius:6px;cursor:pointer;margin-bottom:1px;transition:background .1s;min-height:32px;}
-  .conv-item:hover{background:var(--sidebar-hover);}
-  .conv-item.active{background:var(--sidebar-active);}
-  .conv-label{font-size:13.5px;color:var(--sidebar-text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
-  .conv-item:hover .conv-label{color:var(--sidebar-text);}
-  .conv-item.active .conv-label{color:var(--sidebar-text);font-weight:500;}
-  .conv-del{opacity:0;transition:opacity .12s;}
-  .conv-item:hover .conv-del{opacity:1;}
-  .date-group{font-size:11px;font-weight:600;color:var(--sidebar-text3);letter-spacing:0.06em;text-transform:uppercase;padding:10px 10px 3px;}
-  .side-btn{background:none;border:none;cursor:pointer;padding:5px;border-radius:6px;color:var(--sidebar-text2);display:flex;align-items:center;justify-content:center;transition:background .12s,color .12s;}
-  .side-btn:hover{background:rgba(255,255,255,0.09);color:var(--sidebar-text);}
-  .starter-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px 18px;cursor:pointer;transition:background .12s,border-color .12s;text-align:left;width:100%;}
-  .starter-card:hover{background:#faf7f3;border-color:var(--border2);}
+  
 `
 
 initSettings();
