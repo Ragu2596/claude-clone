@@ -48,7 +48,7 @@ export const STATIC_MODELS = {
   'claude-opus-4-6':           { provider: 'anthropic', id: 'claude-opus-4-6',             free: false, requiredPlan: 'max'     },
 };
 
-export const FREE_FALLBACK_MODEL = STATIC_MODELS['llama-3.3-70b-versatile'];
+export const FREE_FALLBACK_MODEL = STATIC_MODELS['claude-sonnet-4-6'];
 export const TRIAL_LIMIT = 3;
 
 export const EXCLUDED_MODELS = new Set([
@@ -60,8 +60,9 @@ export const EXCLUDED_MODELS = new Set([
 // ── Plan access check ─────────────────────────────────────────────────────────
 export function planAllowsModel(model, userPlan) {
   if (!model.requiredPlan) return true;
-  if (model.requiredPlan === 'starter') return ['starter', 'pro', 'max'].includes(userPlan);
-  if (model.requiredPlan === 'pro')     return ['pro', 'max'].includes(userPlan);
-  if (model.requiredPlan === 'max')     return userPlan === 'max';
+  // Free and starter users can use sonnet (pro tier) — Claude only app
+  if (model.requiredPlan === 'starter') return true;
+  if (model.requiredPlan === 'pro')     return true;
+  if (model.requiredPlan === 'max')     return ['pro', 'max'].includes(userPlan);
   return false;
 }
