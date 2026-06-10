@@ -47,15 +47,13 @@ async function fetchLive() {
 export async function syncModels() {
   console.log('[modelSync] Starting...');
 
-  // Step 1: Delete any bad records (non claude- IDs or timestamp-based names)
-  const all = await prisma.modelConfig.findMany({ select: { modelId: true, displayName: true } });
+  // Step 1: Keep ONLY known good Claude model IDs — delete everything else
+  const validIds = new Set(STATIC_MODELS.map(s => s.modelId));
+  const all = await prisma.modelConfig.findMany({ select: { modelId: true } });
   for (const m of all) {
-    const isBad = !m.modelId.startsWith('claude-') ||
-                  /^\d{10,}$/.test(m.displayName) ||
-                  m.displayName.includes('anthropic-');
-    if (isBad) {
+    if (!validIds.has(m.modelId)) {
       await prisma.modelConfig.delete({ where: { modelId: m.modelId } });
-      console.log(`[modelSync] Deleted bad record: ${m.modelId}`);
+      console.log(`[modelSync] Deleted unknown model: ${m.modelId}`);
     }
   }
 
