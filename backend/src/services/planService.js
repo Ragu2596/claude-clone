@@ -23,7 +23,7 @@ export async function getActivePlan(userId) {
 
 // ─── Select model — DB first, static fallback ────────────────────────────────
 export async function selectModel(requested) {
-  if (requested === 'auto') return STATIC_MODELS['auto'];
+  if (requested === 'claude-haiku-4-5-20251001') return STATIC_MODELS['claude-haiku-4-5-20251001'];
 
   try {
     const m = await prisma.modelConfig.findFirst({
@@ -32,7 +32,7 @@ export async function selectModel(requested) {
     if (m) return { provider: m.provider, id: m.modelId, requiredPlan: m.requiredPlan, free: !m.requiredPlan };
   } catch {}
 
-  return STATIC_MODELS[requested] || STATIC_MODELS['auto'];
+  return STATIC_MODELS[requested] || STATIC_MODELS['claude-haiku-4-5-20251001'];
 }
 
 // ─── Rate limit check — 3 rolling windows ────────────────────────────────────
@@ -120,7 +120,8 @@ export async function incrementTrial(userId, modelId) {
 // Returns { chosenModel, trialInfo, error }
 export async function resolveModel(requestedModel, userId, userPlan, hasFile) {
   // File upload check
-  if (hasFile && userPlan === 'free') {
+  // Free users always get Claude Haiku
+if (hasFile && userPlan === 'free') {
     return { error: { status: 403, body: { error: 'File uploads require Starter plan.', upgradeRequired: true, plan: userPlan } } };
   }
 
@@ -129,12 +130,12 @@ export async function resolveModel(requestedModel, userId, userPlan, hasFile) {
   // Plan access
   if (!planAllowsModel(chosenModel, userPlan)) {
     console.log(`🔒 ${chosenModel.id} requires ${chosenModel.requiredPlan}, user has ${userPlan} — fallback`);
-    chosenModel = STATIC_MODELS['auto'];
+    chosenModel = STATIC_MODELS['claude-haiku-4-5-20251001'];
   }
 
   // Trial check for free users
   let trialInfo = null;
-  if (userPlan === 'free' && chosenModel.requiredPlan) {
+  if (userPlan === 'free' && chosenModel.requiredPlan && chosenModel.requiredPlan !== 'starter') {
     const trial = await getTrialStatus(userId, chosenModel.id);
     if (trial.exhausted) {
       return { error: { status: 403, body: { error: 'Trial exhausted. Upgrade to continue!', trialExhausted: true, modelId: chosenModel.id, plan: userPlan } } };

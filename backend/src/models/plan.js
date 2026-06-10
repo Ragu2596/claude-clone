@@ -40,28 +40,12 @@ export const MODEL_DAILY_LIMITS = {
 // ── Static fallback model registry ───────────────────────────────────────────
 // Used when ModelConfig DB is empty. DB is the source of truth at runtime.
 export const STATIC_MODELS = {
-  'auto':                                     { provider: 'groq',       id: 'llama-3.3-70b-versatile',                 free: true,  requiredPlan: null      },
-  'llama-3.3-70b-versatile':                  { provider: 'groq',       id: 'llama-3.3-70b-versatile',                 free: true,  requiredPlan: null      },
-  'mixtral-8x7b-32768':                       { provider: 'groq',       id: 'mixtral-8x7b-32768',                      free: false, requiredPlan: 'starter' },
-  'gemini-2.0-flash':                         { provider: 'gemini',     id: 'gemini-2.0-flash',                        free: true,  requiredPlan: null      },
-  'gemini-1.5-flash':                         { provider: 'gemini',     id: 'gemini-1.5-flash',                        free: false, requiredPlan: 'starter' },
-  'gemini-1.5-pro':                           { provider: 'gemini',     id: 'gemini-1.5-pro',                          free: false, requiredPlan: 'starter' },
-  'mistral-small':                            { provider: 'mistral',    id: 'mistral-small-latest',                    free: false, requiredPlan: 'starter' },
-  'mistral-large':                            { provider: 'mistral',    id: 'mistral-large-latest',                    free: false, requiredPlan: 'starter' },
-  'together-llama':                           { provider: 'together',   id: 'meta-llama/Llama-3.3-70B-Instruct-Turbo', free: false, requiredPlan: 'starter' },
-  'together-deepseek':                        { provider: 'together',   id: 'deepseek-ai/DeepSeek-V3',                 free: false, requiredPlan: 'starter' },
-  'together-qwen':                            { provider: 'together',   id: 'Qwen/Qwen2.5-72B-Instruct-Turbo',         free: false, requiredPlan: 'starter' },
-  'perplexity-online':                        { provider: 'perplexity', id: 'llama-3.1-sonar-small-128k-online',       free: false, requiredPlan: 'starter' },
-  'perplexity-large-online':                  { provider: 'perplexity', id: 'llama-3.1-sonar-large-128k-online',       free: false, requiredPlan: 'starter' },
-  'claude-haiku-4-5-20251001':                { provider: 'anthropic',  id: 'claude-haiku-4-5-20251001',               free: false, requiredPlan: 'starter' },
-  'claude-haiku-4-6':                         { provider: 'anthropic',  id: 'claude-haiku-4-6',                        free: false, requiredPlan: 'starter' },
-  'gpt-4o-mini':                              { provider: 'openai',     id: 'gpt-4o-mini',                             free: false, requiredPlan: 'starter' },
-  'o4-mini':                                  { provider: 'openai',     id: 'o4-mini',                                 free: false, requiredPlan: 'starter' },
-  'claude-sonnet-4-20250514':                 { provider: 'anthropic',  id: 'claude-sonnet-4-20250514',                free: false, requiredPlan: 'pro'     },
-  'claude-sonnet-4-6':                        { provider: 'anthropic',  id: 'claude-sonnet-4-6',                       free: false, requiredPlan: 'pro'     },
-  'gpt-4o':                                   { provider: 'openai',     id: 'gpt-4o',                                  free: false, requiredPlan: 'pro'     },
-  'o3':                                       { provider: 'openai',     id: 'o3',                                      free: false, requiredPlan: 'pro'     },
-  'claude-opus-4-6':                          { provider: 'anthropic',  id: 'claude-opus-4-6',                         free: false, requiredPlan: 'max'     },
+  // Claude only — all tiers
+  'claude-haiku-4-5-20251001': { provider: 'anthropic', id: 'claude-haiku-4-5-20251001', free: true,  requiredPlan: null      },
+  'claude-haiku-4-6':          { provider: 'anthropic', id: 'claude-haiku-4-6',           free: true,  requiredPlan: null      },
+  'claude-sonnet-4-20250514':  { provider: 'anthropic', id: 'claude-sonnet-4-20250514',   free: false, requiredPlan: 'starter' },
+  'claude-sonnet-4-6':         { provider: 'anthropic', id: 'claude-sonnet-4-6',           free: false, requiredPlan: 'pro'     },
+  'claude-opus-4-6':           { provider: 'anthropic', id: 'claude-opus-4-6',             free: false, requiredPlan: 'max'     },
 };
 
 export const FREE_FALLBACK_MODEL = STATIC_MODELS['llama-3.3-70b-versatile'];
