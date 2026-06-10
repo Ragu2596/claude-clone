@@ -55,11 +55,11 @@ export default function ModelSelector({ value, onChange }) {
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  // Auto-select first model if nothing selected
+  // Auto-select first pro model on load
   useEffect(() => {
-    if (models.length > 0 && !value && onChange) {
+    if (models.length > 0 && onChange) {
       const first = models.find(m => m.requiredPlan === 'pro') || models[0];
-      if (first) onChange(first.modelId);
+      if (first && !value) onChange(first.modelId);
     }
   }, [models]);
 
