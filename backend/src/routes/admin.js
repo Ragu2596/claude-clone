@@ -227,4 +227,13 @@ router.delete('/admins/:id', authenticate, isAdmin, otpVerified, isSuperAdmin, a
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+
+// TEMP: clear model cache — delete this after use
+router.post('/clear-models', authenticate, async (req, res) => {
+  if (req.user.email !== process.env.ADMIN_EMAIL)
+    return res.status(403).json({ error: 'Admin only' });
+  const d = await prisma.modelConfig.deleteMany({});
+  res.json({ cleared: d.count });
+});
+
 export default router;
