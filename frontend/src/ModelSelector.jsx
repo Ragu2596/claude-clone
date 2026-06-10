@@ -28,7 +28,13 @@ function useClaudeModels() {
       const sorted = [...data].sort((a,b) => {
         const ta = TIER[a.requiredPlan] ?? 9;
         const tb = TIER[b.requiredPlan] ?? 9;
-        return ta !== tb ? ta - tb : b.modelId.localeCompare(a.modelId);
+        if (ta !== tb) return ta - tb;
+        // Within same tier: newest first by version number
+        const verA = a.modelId.match(/(\d+)-(\d+)$/);
+        const verB = b.modelId.match(/(\d+)-(\d+)$/);
+        const numA = verA ? parseInt(verA[1])*100 + parseInt(verA[2]) : 0;
+        const numB = verB ? parseInt(verB[1])*100 + parseInt(verB[2]) : 0;
+        return numB - numA;
       });
       setModels(sorted);
     }).catch(() => {});
