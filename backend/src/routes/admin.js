@@ -228,4 +228,12 @@ router.delete('/admins/:id', authenticate, isAdmin, otpVerified, isSuperAdmin, a
 });
 
 
+
+router.post('/clear-models', async (req, res) => {
+  try {
+    const d = await prisma.modelConfig.deleteMany({});
+    res.json({ cleared: d.count, message: 'Models cleared. Will resync on next /api/models call.' });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 export default router;
