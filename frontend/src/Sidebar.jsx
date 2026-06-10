@@ -1,8 +1,8 @@
 // frontend/src/components/Sidebar.jsx
 import { useState, useEffect, useRef } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from ./context/AuthContext";
 import { RkLogo, PlusIcon, EditIcon, CloseIcon, FolderIcon, TrashIcon, ChevronDown } from "./icons";
-import SettingsModal, { initSettings } from "../SettingsModal";
+import SettingsModal, { initSettings } from ./SettingsModal";
 
 const inputStyle = { width:"100%", padding:"9px 12px", borderRadius:8, border:"1px solid var(--border)", background:"rgba(255,255,255,0.08)", fontSize:14, color:"var(--sidebar-text)", outline:"none" };
 

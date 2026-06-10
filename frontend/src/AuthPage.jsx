@@ -1,6 +1,6 @@
 // frontend/src/components/AuthPage.jsx
 import { useState, useEffect } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from ./context/AuthContext";
 import { RkLogo, GoogleLogo } from "./icons";
 
 const inputStyle = { width:"100%", padding:"9px 12px", borderRadius:8, border:"1px solid var(--border)", background:"#fafafa", fontSize:14, color:"var(--text)", outline:"none" };

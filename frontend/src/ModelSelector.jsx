@@ -1,6 +1,6 @@
 // frontend/src/components/ModelSelector.jsx
 import { useState, useEffect, useRef } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from ./context/AuthContext";
 
 const GROUP_LABELS = {
   auto:null,
