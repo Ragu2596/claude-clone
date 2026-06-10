@@ -131,7 +131,7 @@ if (hasFile && userPlan === 'free') {
   // Plan access
   if (!planAllowsModel(chosenModel, userPlan)) {
     console.log(`🔒 ${chosenModel.id} requires ${chosenModel.requiredPlan}, user has ${userPlan} — fallback`);
-    chosenModel = STATIC_MODELS['claude-sonnet-4-20250514'];
+    chosenModel = STATIC_MODELS['claude-sonnet-4-5-20250929'];
   }
 
   // Trial check for free users

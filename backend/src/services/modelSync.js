@@ -4,8 +4,8 @@ import { config } from '../config/index.js';
 
 const STATIC_MODELS = [
   { modelId: 'claude-opus-4-6',          plan: 'max',     badge: 'MAX',  name: 'Opus 4.6'   },
-  { modelId: 'claude-sonnet-4-6',        plan: 'pro',     badge: 'PRO',  name: 'Sonnet 4.6' },
-  { modelId: 'claude-sonnet-4-20250514', plan: 'pro',     badge: 'PRO',  name: 'Sonnet 4.5' },
+  { modelId: 'claude-sonnet-4-5-20250929',        plan: 'pro',     badge: 'PRO',  name: 'Sonnet 4.6' },
+  { modelId: 'claude-sonnet-4-5-20250929', plan: 'pro',     badge: 'PRO',  name: 'Sonnet 4.5' },
   { modelId: 'claude-haiku-4-6',         plan: 'starter', badge: 'FAST', name: 'Haiku 4.6'  },
   { modelId: 'claude-haiku-4-5-20251001',plan: 'starter', badge: 'FAST', name: 'Haiku 4.5'  },
 ];

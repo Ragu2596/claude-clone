@@ -24,8 +24,8 @@ export const PLAN_BUDGETS = {
 // ── Per-model daily caps ──────────────────────────────────────────────────────
 export const MODEL_DAILY_LIMITS = {
   'claude-opus-4-6':                       { free: 0, starter: 0,  pro: 0,   max: 20  },
-  'claude-sonnet-4-20250514':                     { free: 0, starter: 0,  pro: 100, max: 300 },
-  'claude-sonnet-4-20250514':              { free: 0, starter: 0,  pro: 100, max: 300 },
+  'claude-sonnet-4-5-20250929':                     { free: 0, starter: 0,  pro: 100, max: 300 },
+  'claude-sonnet-4-5-20250929':              { free: 0, starter: 0,  pro: 100, max: 300 },
   'claude-haiku-4-6':                      { free: 0, starter: 50, pro: 999, max: 999 },
   'claude-haiku-4-5-20251001':             { free: 0, starter: 50, pro: 999, max: 999 },
   'o3':                                    { free: 0, starter: 0,  pro: 20,  max: 100 },
@@ -43,12 +43,12 @@ export const STATIC_MODELS = {
   // Claude only — all tiers
   'claude-haiku-4-5-20251001': { provider: 'anthropic', id: 'claude-haiku-4-5-20251001', free: true,  requiredPlan: null      },
   'claude-haiku-4-6':          { provider: 'anthropic', id: 'claude-haiku-4-6',           free: true,  requiredPlan: null      },
-  'claude-sonnet-4-20250514':  { provider: 'anthropic', id: 'claude-sonnet-4-20250514',   free: false, requiredPlan: 'starter' },
-  'claude-sonnet-4-20250514':         { provider: 'anthropic', id: 'claude-sonnet-4-20250514',           free: true,  requiredPlan: null      },
+  'claude-sonnet-4-5-20250929':  { provider: 'anthropic', id: 'claude-sonnet-4-5-20250929',   free: false, requiredPlan: 'starter' },
+  'claude-sonnet-4-5-20250929':         { provider: 'anthropic', id: 'claude-sonnet-4-5-20250929',           free: true,  requiredPlan: null      },
   'claude-opus-4-6':           { provider: 'anthropic', id: 'claude-opus-4-6',             free: false, requiredPlan: 'max'     },
 };
 
-export const FREE_FALLBACK_MODEL = STATIC_MODELS['claude-sonnet-4-20250514'];
+export const FREE_FALLBACK_MODEL = STATIC_MODELS['claude-sonnet-4-5-20250929'];
 export const TRIAL_LIMIT = 3;
 
 export const EXCLUDED_MODELS = new Set([
