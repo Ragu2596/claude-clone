@@ -1045,7 +1045,7 @@ function InputBar({ onSend, streaming, onStop, userPlan }) {
               ? <button onClick={onStop} style={{ width:32, height:32, borderRadius:8, background:"var(--text)", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}
                   onMouseEnter={e=>e.currentTarget.style.background="#333"} onMouseLeave={e=>e.currentTarget.style.background="var(--text)"}><StopIcon size={12}/></button>
               : <button onClick={submit} disabled={!text.trim()}
-                  style={{ width:32, height:32, borderRadius:8, background:text.trim()?"var(--text)":"var(--hover)", border:"none", color:text.trim()?"#fff":"var(--text3)", cursor:text.trim()?"pointer":"default", display:"flex", alignItems:"center", justifyContent:"center", transition:"all .15s" }}
+                  style={{ width:32, height:32, borderRadius:8, background:text.trim()?"var(--orange)":"rgba(201,100,66,0.25)", border:"none", color:"#fff", cursor:text.trim()?"pointer":"default", display:"flex", alignItems:"center", justifyContent:"center", transition:"all .15s" }}
                   onMouseEnter={e=>{if(text.trim())e.currentTarget.style.background="#333";}} onMouseLeave={e=>{if(text.trim())e.currentTarget.style.background="var(--text)";}}>
                   <SendIcon size={15}/>
                 </button>}

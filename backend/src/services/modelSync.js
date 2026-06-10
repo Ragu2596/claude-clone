@@ -9,7 +9,7 @@ import { config } from '../config/index.js';
 // ── Plan inference from model ID ──────────────────────────────
 // Anthropic naming convention: haiku=fast/cheap, sonnet=balanced, opus=powerful
 function inferPlan(modelId) {
-  const id = modelId.toLowerCase();
+  const id = clean.toLowerCase();
   if (id.includes('haiku'))  return 'starter';
   if (id.includes('sonnet')) return 'pro';
   if (id.includes('opus'))   return 'max';
@@ -18,7 +18,7 @@ function inferPlan(modelId) {
 }
 
 function inferBadge(modelId) {
-  const id = modelId.toLowerCase();
+  const id = clean.toLowerCase();
   if (id.includes('haiku'))  return 'FAST';
   if (id.includes('sonnet')) return 'PRO';
   if (id.includes('opus'))   return 'MAX';
@@ -27,7 +27,9 @@ function inferBadge(modelId) {
 
 // Human-friendly display names — maps model ID patterns to clean names
 function inferDisplayName(modelId) {
-  const id = modelId.toLowerCase();
+  // Remove date suffix: claude-sonnet-4-20250514 → claude-sonnet-4
+  const clean = modelId.replace(/-\d{8}$/, '').replace(/-\d{10}$/, '');
+  const id = clean.toLowerCase();
   // Extract version number if present e.g. claude-sonnet-4-6 → "Sonnet 4.6"
   const versionMatch = modelId.match(/(\d+)-(\d+)(?:-(\d+))?/);
   const version = versionMatch
@@ -37,7 +39,7 @@ function inferDisplayName(modelId) {
   if (id.includes('opus'))   return version ? `Opus ${version}`   : 'Opus';
   if (id.includes('sonnet')) return version ? `Sonnet ${version}` : 'Sonnet';
   if (id.includes('haiku'))  return version ? `Haiku ${version}`  : 'Haiku';
-  return modelId.replace('claude-', '').replace(/-/g, ' ');
+  return clean.replace('claude-', '').replace(/-/g, ' ');
 }
 
 // Models to always exclude (non-chat models)
