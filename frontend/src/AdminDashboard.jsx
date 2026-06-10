@@ -321,7 +321,13 @@ function AdminsTab({ currentRole }) {
 }
 
 // ── Main Dashboard ────────────────────────────────────────────
-export default function AdminDashboard() {
+export default function AdminDashboard({ onBack }) {
+  React.useEffect(() => {
+    window.history.pushState(null, '', window.location.href);
+    const handler = () => { window.history.pushState(null, '', window.location.href); onBack?.(); };
+    window.addEventListener('popstate', handler);
+    return () => window.removeEventListener('popstate', handler);
+  }, []);
   const storedToken = getToken();
   if (!storedToken) { window.location.hash = ""; return null; }
 
