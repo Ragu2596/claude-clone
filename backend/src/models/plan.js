@@ -40,12 +40,11 @@ export const MODEL_DAILY_LIMITS = {
 // ── Static fallback model registry ───────────────────────────────────────────
 // Used when ModelConfig DB is empty. DB is the source of truth at runtime.
 export const STATIC_MODELS = {
-  // Claude only — all tiers
-  'claude-haiku-4-5-20251001': { provider: 'anthropic', id: 'claude-haiku-4-5-20251001', free: true,  requiredPlan: null      },
-  'claude-haiku-4-6':          { provider: 'anthropic', id: 'claude-haiku-4-6',           free: true,  requiredPlan: null      },
-  'claude-sonnet-4-5-20250929':  { provider: 'anthropic', id: 'claude-sonnet-4-5-20250929',   free: false, requiredPlan: 'starter' },
-  'claude-sonnet-4-5-20250929':         { provider: 'anthropic', id: 'claude-sonnet-4-5-20250929',           free: true,  requiredPlan: null      },
-  'claude-opus-4-6':           { provider: 'anthropic', id: 'claude-opus-4-6',             free: false, requiredPlan: 'max'     },
+  'claude-haiku-4-5-20251001':  { provider: 'anthropic', id: 'claude-haiku-4-5-20251001',  free: true,  requiredPlan: null  },
+  'claude-haiku-4-6':           { provider: 'anthropic', id: 'claude-haiku-4-6',            free: true,  requiredPlan: null  },
+  'claude-sonnet-4-5-20250929': { provider: 'anthropic', id: 'claude-sonnet-4-5-20250929',  free: true,  requiredPlan: null  },
+  'claude-sonnet-4-6':          { provider: 'anthropic', id: 'claude-sonnet-4-6',            free: true,  requiredPlan: null  },
+  'claude-opus-4-6':            { provider: 'anthropic', id: 'claude-opus-4-6',              free: false, requiredPlan: 'max' },
 };
 
 export const FREE_FALLBACK_MODEL = STATIC_MODELS['claude-sonnet-4-5-20250929'];
