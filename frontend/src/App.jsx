@@ -69,7 +69,7 @@ const GoogleLogo = () => (
 // ── CSS — Claude exact design ─────────────────────────────────
 const CSS = `
   :root {
-    --cream:#f5f0e8; --sidebar:#1a1915;
+    --cream:#f9f7f4; --sidebar:#1a1915;
     --sidebar-hover:rgba(255,255,255,0.07);
     --sidebar-active:rgba(255,255,255,0.12);
     --sidebar-border:rgba(255,255,255,0.08);
@@ -1086,7 +1086,7 @@ export default function App() {
   if (!user) return <AuthPage/>;
 
   // Admin check
-  const isAdmin = user?.email === import.meta.env.VITE_ADMIN_EMAIL || user?.plan === "max";
+  const isAdmin = user?.email === "ragunath2596@gmail.com";
   if (showAdmin && isAdmin) return <AdminDashboard onBack={()=>setShowAdmin(false)}/>;
   if (showPricing) return <PricingPage onClose={()=>setShowPricing(false)} user={user}/>;
 
