@@ -517,7 +517,7 @@ function Sidebar({ conversations, projects, activeId, activeProjectId, selectCon
       </div>
 
       {/* Scrollable list */}
-      <div style={{ flex:1, overflowY:"auto", padding:"0 6px" }}>
+      <div style={{ flex:1, overflowY:"auto", overflowX:"hidden", padding:"0 6px", minHeight:0 }}>
         {/* Projects */}
         <SectionHeader label="Projects" action={()=>setShowNewProj(!showNewProj)}/>
         {showNewProj && (
