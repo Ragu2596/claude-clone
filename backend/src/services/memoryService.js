@@ -66,11 +66,9 @@ Updated memory:`;
 
 export function buildSystemPrompt(basePrompt, userMemory, langInstruction) {
   let prompt = basePrompt;
-  if (userMemory) {
-    prompt += `\n\n--- What I know about this user from past conversations ---\n${userMemory}\n---`;
-  }
-  if (langInstruction) {
-    prompt += `\n\n${langInstruction}`;
-  }
+  // Memory injection disabled - pure Claude responses
+  // if (userMemory) {
+  //   prompt += `\n\n--- What I know about this user ---\n${userMemory}\n---`;
+  // }
   return prompt;
 }
