@@ -138,7 +138,7 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
     const basePrompt   = conv.project?.systemPrompt || BASE_SYSTEM_PROMPT;
     const userMemory   = await getUserMemory(userId);
     const langInstr    = getLangInstruction(req.body.lang || 'en');
-    const systemPrompt = buildSystemPrompt(basePrompt, userMemory, langInstr);
+    const systemPrompt = buildSystemPrompt(basePrompt, null, langInstr); // memory disabled
 
     const history = [
       ...conv.messages.map(m => ({ role: m.role, content: m.content })),
