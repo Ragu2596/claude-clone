@@ -43,7 +43,7 @@ function maybeSyncModels() {
 maybeSyncModels();
 
 // ── Base system prompt ────────────────────────────────────────────────────────
-const BASE_SYSTEM_PROMPT = `Today is ${new Date().toLocaleDateString('en-US', {weekday:'long',year:'numeric',month:'long',day:'numeric'})}.`;
+const BASE_SYSTEM_PROMPT = '';
 
 function autoTitle(text) {
   return text.replace(/[^a-zA-Z0-9 ]/g, ' ').trim().split(' ').filter(Boolean).slice(0, 6).join(' ') || 'New Chat';
