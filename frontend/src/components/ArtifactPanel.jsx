@@ -15,12 +15,37 @@ export default function ArtifactPanel({ artifact, artifactLang, onClose, isMobil
 
   const handleDownload = () => {
     const FILE_EXT_MAP = {
-      javascript: "js", typescript: "ts", jsx: "jsx", tsx: "tsx",
-      python: "py", java: "java", kotlin: "kt", swift: "swift",
-      go: "go", rust: "rs", cpp: "cpp", c: "c", cs: "cs", php: "php",
-      ruby: "rb", html: "html", css: "css", scss: "scss", xml: "xml",
-      json: "json", yaml: "yml", sql: "sql", graphql: "graphql",
-      sh: "sh", bash: "sh", markdown: "md", svg: "svg", csv: "csv",
+      javascript: "js",
+      typescript: "ts",
+      jsx: "jsx",
+      tsx: "tsx",
+      python: "py",
+      java: "java",
+      kotlin: "kt",
+      swift: "swift",
+      go: "go",
+      rust: "rs",
+      cpp: "cpp",
+      c: "c",
+      cs: "cs",
+      php: "php",
+      ruby: "rb",
+      html: "html",
+      css: "css",
+      scss: "scss",
+      xml: "xml",
+      json: "json",
+      yaml: "yml",
+      yml: "yml",
+      sql: "sql",
+      graphql: "graphql",
+      sh: "sh",
+      bash: "sh",
+      markdown: "md",
+      md: "md",
+      svg: "svg",
+      csv: "csv",
+      dockerfile: "dockerfile",
     };
 
     const ext = FILE_EXT_MAP[artifactLang?.toLowerCase()] || "txt";
@@ -33,8 +58,11 @@ export default function ArtifactPanel({ artifact, artifactLang, onClose, isMobil
     setTimeout(() => URL.revokeObjectURL(url), 100);
   };
 
-  const isPreviewable = ["html", "htm", "jsx", "tsx", "svg"].includes(artifactLang?.toLowerCase());
+  const isPreviewable = ["html", "htm", "jsx", "tsx", "svg"].includes(
+    artifactLang?.toLowerCase()
+  );
   const ext = artifactLang?.toLowerCase() || "text";
+  const lineCount = artifact.split("\n").length;
 
   return (
     <div
@@ -44,135 +72,142 @@ export default function ArtifactPanel({ artifact, artifactLang, onClose, isMobil
         top: 0,
         bottom: 0,
         width: isMobile ? "100%" : "40%",
+        height: "100vh",
         background: "#fff",
-        borderLeft: "1px solid var(--border)",
+        borderLeft: `1px solid #e5e5e5`,
         display: "flex",
         flexDirection: "column",
         zIndex: isMobile ? 200 : 100,
-        boxShadow: isMobile ? "none" : "-2px 0 12px rgba(0,0,0,0.1)",
+        boxShadow: "-1px 0 3px rgba(0,0,0,0.1)",
         overflow: "hidden",
-        animation: isMobile ? "slideIn 0.3s ease forwards" : "none",
       }}
     >
-      {/* Header */}
+      {/* Header - Claude Style */}
       <div
         style={{
-          padding: "16px 18px",
-          borderBottom: "1px solid var(--border)",
+          padding: "12px 16px",
+          borderBottom: "1px solid #e5e5e5",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           flexShrink: 0,
-          background: "#fafafa",
+          background: "#fff",
         }}
       >
-        <div>
-          <h3
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div
             style={{
-              margin: 0,
-              fontSize: 15,
-              fontWeight: 700,
-              color: "var(--text)",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            {isPreviewable ? "Preview" : "Code"}
-          </h3>
-          <p
-            style={{
+              width: 20,
+              height: 20,
+              borderRadius: 4,
+              background: "#d4d4d8",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               fontSize: 12,
-              color: "var(--text3)",
-              margin: "4px 0 0",
-              fontWeight: 500,
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
+              fontWeight: 600,
+              color: "#fff",
             }}
           >
-            {ext} • {artifact.split("\n").length} lines
-          </p>
+            {"<>"}
+          </div>
+          <div>
+            <h3
+              style={{
+                margin: 0,
+                fontSize: 13,
+                fontWeight: 500,
+                color: "#000",
+                letterSpacing: "0",
+              }}
+            >
+              {isPreviewable ? "Preview" : "Code"}
+            </h3>
+          </div>
         </div>
         <button
           onClick={onClose}
-          title="Close"
           style={{
             background: "none",
             border: "none",
             cursor: "pointer",
-            fontSize: 24,
-            color: "var(--text3)",
-            padding: 0,
+            fontSize: 20,
+            color: "#9ca3af",
+            padding: "4px 8px",
             lineHeight: 1,
             transition: "color 0.2s",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            width: 32,
-            height: 32,
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text)")}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text3)")}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "#4b5563")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "#9ca3af")}
         >
-          ✕
+          ×
         </button>
       </div>
 
-      {/* Toolbar */}
+      {/* Toolbar - Claude Style */}
       <div
         style={{
-          padding: "10px 14px",
-          borderBottom: "1px solid var(--border)",
+          padding: "8px 12px",
+          borderBottom: "1px solid #e5e5e5",
           display: "flex",
-          gap: 8,
+          gap: 6,
           flexShrink: 0,
           background: "#fff",
         }}
       >
         <button
           onClick={handleCopy}
-          title="Copy to clipboard"
           style={{
             fontSize: 12,
-            padding: "6px 12px",
-            background: "var(--sidebar)",
-            border: "1px solid var(--border)",
-            borderRadius: 6,
+            padding: "5px 10px",
+            background: "#f3f4f6",
+            border: "1px solid #d1d5db",
+            borderRadius: 4,
             cursor: "pointer",
             fontWeight: 500,
-            color: copied ? "var(--orange)" : "var(--text2)",
-            transition: "all 0.2s",
+            color: copied ? "#059669" : "#374151",
+            transition: "all 0.15s",
             display: "flex",
             alignItems: "center",
             gap: 5,
           }}
           onMouseEnter={(e) => {
-            if (!copied) e.currentTarget.style.background = "var(--hover)";
+            if (!copied) {
+              e.currentTarget.style.background = "#e5e7eb";
+            }
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = "var(--sidebar)";
+            e.currentTarget.style.background = "#f3f4f6";
           }}
         >
-          {copied ? "✓ Copied!" : "📋 Copy"}
+          {copied ? "✓" : "📋"} {copied ? "Copied" : "Copy"}
         </button>
 
         <button
           onClick={handleDownload}
-          title="Download file"
           style={{
             fontSize: 12,
-            padding: "6px 12px",
-            background: "var(--sidebar)",
-            border: "1px solid var(--border)",
-            borderRadius: 6,
+            padding: "5px 10px",
+            background: "#f3f4f6",
+            border: "1px solid #d1d5db",
+            borderRadius: 4,
             cursor: "pointer",
             fontWeight: 500,
-            color: "var(--text2)",
-            transition: "all 0.2s",
+            color: "#374151",
+            transition: "all 0.15s",
             display: "flex",
             alignItems: "center",
             gap: 5,
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover)")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "var(--sidebar)")}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "#e5e7eb";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "#f3f4f6";
+          }}
         >
           📥 Download
         </button>
@@ -183,14 +218,14 @@ export default function ArtifactPanel({ artifact, artifactLang, onClose, isMobil
         style={{
           flex: 1,
           overflowY: "auto",
-          padding: 0,
-          background: isPreviewable ? "#fff" : "var(--cream)",
+          overflow: "hidden",
           display: "flex",
           flexDirection: "column",
+          background: isPreviewable ? "#fff" : "#f9fafb",
         }}
       >
         {isPreviewable ? (
-          /* Live Preview for HTML/JSX/SVG */
+          /* Live Preview - Claude Style */
           <div
             style={{
               flex: 1,
@@ -198,78 +233,52 @@ export default function ArtifactPanel({ artifact, artifactLang, onClose, isMobil
               display: "flex",
               flexDirection: "column",
               overflow: "hidden",
+              background: "#fff",
             }}
           >
-            <div
+            <iframe
+              srcDoc={artifact}
               style={{
                 flex: 1,
-                overflow: "hidden",
+                border: "none",
                 background: "#fff",
+                width: "100%",
+                height: "100%",
               }}
-            >
-              <iframe
-                srcDoc={artifact}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  border: "none",
-                  background: "#fff",
-                }}
-                title="artifact-preview"
-                sandbox="allow-scripts allow-same-origin allow-forms"
-              />
-            </div>
+              title="artifact-preview"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+            />
           </div>
         ) : (
-          /* Code Display with Syntax Highlighting */
+          /* Code Display - Claude Style */
           <div
             style={{
               flex: 1,
-              overflow: "hidden",
+              overflow: "auto",
               display: "flex",
               flexDirection: "column",
             }}
           >
-            <div
-              style={{
-                flex: 1,
-                overflow: "auto",
-                background: "#fafafa",
+            <SyntaxHighlighter
+              language={ext === "text" ? "text" : ext}
+              style={oneLight}
+              customStyle={{
+                margin: 0,
+                padding: "16px",
+                fontSize: 12,
+                fontFamily: "'JetBrains Mono', 'Fira Code', 'Courier New', monospace",
+                background: "#f9fafb",
+                lineHeight: 1.5,
+                height: "100%",
               }}
+              wrapLines={true}
+              wrapLongLines={true}
+              showLineNumbers={lineCount > 10}
             >
-              <SyntaxHighlighter
-                language={artifactLang || "text"}
-                style={oneLight}
-                customStyle={{
-                  margin: 0,
-                  padding: "16px",
-                  fontSize: 13,
-                  fontFamily: "var(--mono)",
-                  background: "#fafafa",
-                  lineHeight: 1.6,
-                }}
-                wrapLines={true}
-                wrapLongLines={true}
-              >
-                {artifact}
-              </SyntaxHighlighter>
-            </div>
+              {artifact}
+            </SyntaxHighlighter>
           </div>
         )}
-      </div>
-
-      {/* Footer Info */}
-      <div
-        style={{
-          padding: "10px 16px",
-          borderTop: "1px solid var(--border)",
-          background: "#fafafa",
-          fontSize: 11,
-          color: "var(--text3)",
-          flexShrink: 0,
-        }}
-      >
-        {isPreviewable ? "Live Preview" : "Code View"} • {ext.toUpperCase()}
       </div>
     </div>
   );
