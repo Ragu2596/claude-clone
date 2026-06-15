@@ -9,8 +9,10 @@ import PricingPage from "./PricingPage";
 import AdminDashboard from "./AdminDashboard";
 import SettingsModal, { initSettings } from "./SettingsModal";
 
-// ✨ NEW: Import ArtifactPanel
+// ✨ NEW IMPORTS
 import ArtifactPanel from "./components/ArtifactPanel";
+import ProfilePage from "./components/ProfilePage";
+import VoiceChat from "./components/VoiceChat";
 
 // ─── Mobile hook ──────────────────────────────────────────────
 function useIsMobile() {
@@ -44,13 +46,11 @@ const ChevronDown   = ({size=14}) => <Icon size={size} sw={2} d="M6 9l6 6 6-6"/>
 const RefreshIcon   = ({size=14}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>;
 const CloseIcon     = ({size=13}) => <Icon size={size} sw={2.5} d="M18 6L6 18M6 6l12 12"/>;
 const PreviewIcon   = ({size=14}) => <Icon size={size} d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zM12 9a3 3 0 100 6 3 3 0 000-6z"/>;
-const DownloadIcon  = ({size=14}) => <Icon size={size} d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>;
-const OpenIcon      = ({size=13}) => <Icon size={size} d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/>;
-const PrintIcon     = ({size=14}) => <Icon size={size} d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/>;
+const DownloadIcon = ({size=14}) => <Icon size={size} d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>;
+const OpenIcon     = ({size=13}) => <Icon size={size} d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/>;
+const PrintIcon    = ({size=14}) => <Icon size={size} d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/>;
 const MenuIcon      = ({size=22}) => <Icon size={size} sw={2} d="M3 6h18M3 12h18M3 18h18"/>;
 const PencilIcon    = ({size=13}) => <Icon size={size} d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>;
-const SettingsIcon  = ({size=14}) => <Icon size={size} d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />;
-const LogOutIcon    = ({size=14}) => <Icon size={size} d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l4-4m0 0l-4-4m4 4H9" />;
 
 // ─── Logo ─────────────────────────────────────────────────────
 const RkLogo = ({ size = 28 }) => (
@@ -78,14 +78,22 @@ const GoogleLogo = () => (
   </svg>
 );
 
-// ─── CSS ──────────────────────────────────────────────────────
+// ─── CSS - CLAUDE.AI COLORS ──────────────────────────────────
 const CSS = `
   :root {
-    --cream: #f5f0e8; --sidebar: #ede8e0; --border: #ddd7ce;
-    --hover: rgba(0,0,0,0.05); --active: rgba(0,0,0,0.08);
-    --text: #1a1a1a; --text2: #555; --text3: #999;
-    --orange: #c96442; --orange2: #b55538;
-    --user-bubble: #3d3d3d; --mono: 'JetBrains Mono','Fira Code',monospace;
+    /* Claude.ai exact colors */
+    --cream: #ffffff;
+    --sidebar: #ececf1;
+    --border: #d1d5db;
+    --text: #0d0d0d;
+    --text2: #565869;
+    --text3: #9ca3af;
+    --orange: #ff6b35;
+    --orange2: #e65100;
+    --user-bubble: #0d0d0d;
+    --mono: 'JetBrains Mono','Fira Code',monospace;
+    --hover: #f3f4f6;
+    --active: #ececf1;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
@@ -241,9 +249,9 @@ function AuthPage() {
           <div style={{ background: "#fff", borderRadius: 16, padding: "20px 24px", border: "1px solid var(--border)", marginBottom: 24, textAlign: "left" }}>
             {[
               { icon: "✅", text: "Free account activated" },
-              { icon: "🤖", text: "Groq & Gemini models ready" },
-              { icon: "💬", text: "5 free messages per day" },
-              { icon: "⚡", text: "Upgrade anytime for more" },
+              { icon: "🤖", text: "Multiple AI models ready" },
+              { icon: "💬", text: "Start chatting now" },
+              { icon: "⚡", text: "Upgrade anytime" },
             ].map((item, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: i < 3 ? "1px solid var(--border)" : "none" }}>
                 <span style={{ fontSize: 18 }}>{item.icon}</span>
@@ -388,7 +396,7 @@ function Message({ msg, isLast, streaming, onArtifact, activeArtifactCode, onRet
   const [expanded, setExpanded] = useState(false);
 
   if (isUser) return (
-    <div className="user-wrap" style={{ display: "flex", justifyContent: "flex-end", padding: "6px 0", marginBottom: 6, animation: "fadeUp .25s ease forwards" }}>
+    <div className="user-wrap" style={{ display: "flex", justifyContent: "flex-end", padding: "6px 0", marginBottom: 6, animation: "fadeUp .25s ease forwards", position: "relative" }}>
       <div style={{ maxWidth: "85%" }}>
         {msg.fileUrl && (
           <div style={{ marginBottom: 6, display: "flex", justifyContent: "flex-end" }}>
@@ -399,7 +407,8 @@ function Message({ msg, isLast, streaming, onArtifact, activeArtifactCode, onRet
         )}
         {editing ? (
           <div style={{ background: "#fff", border: "1px solid var(--orange)", borderRadius: 14, padding: 10, minWidth: 240 }}>
-            <textarea value={editText} onChange={e => setEditText(e.target.value)} rows={3} autoFocus
+            <textarea value={editText} onChange={e => setEditText(e.target.value)} rows={3}
+              autoFocus
               style={{ width: "100%", background: "none", border: "none", outline: "none", fontSize: 14, color: "var(--text)", resize: "none", fontFamily: "inherit", lineHeight: 1.6 }} />
             <div style={{ display: "flex", gap: 6, justifyContent: "flex-end", marginTop: 6 }}>
               <button onClick={() => { setEditing(false); setEditText(msg.content); }} style={{ padding: "5px 12px", background: "none", border: "1px solid var(--border)", borderRadius: 7, fontSize: 12, cursor: "pointer", color: "var(--text2)" }}>Cancel</button>
@@ -568,10 +577,6 @@ function Message({ msg, isLast, streaming, onArtifact, activeArtifactCode, onRet
 
 // ─── Sidebar Component ────────────────────────────────────────
 function Sidebar({ conversations, projects, activeId, activeProjectId, selectConv, newConv, deleteConv, setActiveProjectId, createProject, deleteProject, onUpgrade, isMobile, onClose }) {
-  const [showNewProject, setShowNewProject] = useState(false);
-  const [projectForm, setProjectForm] = useState({ name: "", description: "", systemPrompt: "" });
-  const [showProjectForm, setShowProjectForm] = useState(false);
-
   return (
     <div style={{
       width: isMobile ? "100%" : 260,
@@ -848,7 +853,7 @@ function App() {
     rateLimit,
     upgradeRequired,
     trialExhausted,
-    // ✨ NEW: Artifact state
+    // ✨ NEW: Artifact states
     artifact,
     artifactLang,
     setArtifact,
@@ -862,6 +867,9 @@ function App() {
     createProject,
     deleteProject,
   } = useChat();
+
+  // ✨ NEW: Profile state
+  const [showProfile, setShowProfile] = useState(false);
 
   const [showPricing, setShowPricing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -912,7 +920,7 @@ function App() {
       >
         {/* Mobile Header */}
         {isMobile && (
-          <div style={{ padding: "8px 12px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 8, background: "#fff" }}>
+          <div style={{ padding: "8px 12px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#fff" }}>
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               style={{
@@ -927,6 +935,18 @@ function App() {
               }}
             >
               <MenuIcon size={18} />
+            </button>
+            <button
+              onClick={() => setShowProfile(true)}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                fontSize: 20,
+                color: "var(--text2)",
+              }}
+            >
+              👤
             </button>
           </div>
         )}
@@ -1004,6 +1024,15 @@ function App() {
             isMobile={true}
           />
         </>
+      )}
+
+      {/* ✨ NEW: Profile Modal */}
+      {showProfile && (
+        <ProfilePage
+          user={user}
+          onClose={() => setShowProfile(false)}
+          onLogout={logout}
+        />
       )}
 
       {/* Modals */}
