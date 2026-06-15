@@ -227,4 +227,10 @@ router.delete('/admins/:id', authenticate, isAdmin, otpVerified, isSuperAdmin, a
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+
+router.post('/clear-memory', authenticate, async (req, res) => {
+  const d = await prisma.userMemory.deleteMany({});
+  res.json({ cleared: d.count });
+});
+
 export default router;
