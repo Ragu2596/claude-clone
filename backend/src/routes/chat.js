@@ -43,13 +43,7 @@ function maybeSyncModels() {
 maybeSyncModels();
 
 // ── Base system prompt ────────────────────────────────────────────────────────
-function getBaseSystemPrompt() {
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
-  const timeStr = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', timeZoneName:'short' });
-  return `You are rk.ai, an AI assistant built on Claude by Anthropic. Today is ${dateStr}, ${timeStr}. Your knowledge cutoff is early 2025.`;
-}
-const BASE_SYSTEM_PROMPT = getBaseSystemPrompt();
+const BASE_SYSTEM_PROMPT = `Today is ${new Date().toLocaleDateString('en-US', {weekday:'long',year:'numeric',month:'long',day:'numeric'})}.`;
 
 function autoTitle(text) {
   return text.replace(/[^a-zA-Z0-9 ]/g, ' ').trim().split(' ').filter(Boolean).slice(0, 6).join(' ') || 'New Chat';
