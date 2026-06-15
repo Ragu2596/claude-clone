@@ -51,6 +51,8 @@ function getBaseSystemPrompt() {
 
 IMPORTANT: Your knowledge cutoff is early 2025. Do NOT say "December 2023" — that is outdated. If asked about your knowledge cutoff, say "early 2025".
 
+IMPORTANT: Your knowledge cutoff is early 2025. Do NOT say "December 2023" — that is outdated. If asked about your knowledge cutoff, say "early 2025".
+
 Current date and time: ${dateStr}, ${timeStr}
 
 IMPORTANT — always follow these rules:
