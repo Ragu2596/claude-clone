@@ -21,7 +21,7 @@ export async function updateUserMemory(userId, userMessage, aiResponse) {
     const existing     = await prisma.userMemory.findUnique({ where: { userId } });
     const currentMemory = existing?.memory || '';
 
-    const prompt = `You are a memory extractor. Extract ONLY important technical facts worth remembering long-term from this conversation.
+    const prompt = `You are a memory extractor. Extract ONLY important facts about the USER (their preferences, projects, tech stack) from this conversation. NEVER store anything about the AI assistant's identity or name.
 
 EXISTING MEMORY:
 ${currentMemory || 'None yet'}
@@ -66,11 +66,9 @@ Updated memory:`;
 
 export function buildSystemPrompt(basePrompt, userMemory, langInstruction) {
   let prompt = basePrompt;
-  if (userMemory) {
-    prompt += `\n\n--- What I know about this user from past conversations ---\n${userMemory}\n---`;
-  }
-  if (langInstruction) {
-    prompt += `\n\n${langInstruction}`;
-  }
+  // Memory injection disabled - pure Claude responses
+  // if (userMemory) {
+  //   prompt += `\n\n--- What I know about this user ---\n${userMemory}\n---`;
+  // }
   return prompt;
 }
