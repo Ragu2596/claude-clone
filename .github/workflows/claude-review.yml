@@ -1,0 +1,38 @@
+name: Claude PR review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Review only the files changed in this pull request.
+            Post inline comments. Be concise and specific.
+
+            Check for:
+            1. Crashes and undefined variables in React render paths
+            2. Missing props passed to child components
+            3. Secrets, API keys, or tokens committed in code
+            4. Auth logic that could let a user read another user's
+               conversations
+            5. Database queries inside loops, or unbounded queries
+            6. Missing error handling around the Anthropic API call
+            7. Any change to payments, auth, migrations, rate limits,
+               or the system prompt - flag these loudly
+
+            If the PR looks fine, say so in one line. Do not invent
+            problems to have something to report.
